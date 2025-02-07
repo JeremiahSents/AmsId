@@ -43,44 +43,53 @@ const ClientTable = () => {
   const [filteredClients, setFilteredClients] = useState([]);
 
   const fetchData = async () => {
-
     const token = localStorage.getItem("token");
     console.log("Token Retrieved from Storage:", token); 
-
+  
     setLoading(true);
     try {
-        const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080';
-        const token = localStorage.getItem("token");  // Retrieve token
-
-        const [clientsResponse, categoriesResponse] = await Promise.all([
-            axios.get(`${baseUrl}/api/clients/all`, {
-                headers: {
-                    Authorization: `Bearer ${token}`,  // Include token
-                }
-            }),
-            getCategories()
-        ]);
-
-        console.log('Clients data:', clientsResponse.data);
-        const clientsData = Array.isArray(clientsResponse.data) ? clientsResponse.data : [];
-
-        clientsData.forEach(client => {
-          console.log(`Client ID: ${client.kpClientId}, Category: ${client.categoryRegistered}`);
+      const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+      const token = localStorage.getItem("token");
+  
+      const [clientsResponse, categoriesResponse] = await Promise.all([
+        axios.get(`${baseUrl}/api/clients/all`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          }
+        }),
+        getCategories() // Assuming this returns an array like [{ id: 1, name: "General" }, ...]
+      ]);
+  
+      const clientsData = Array.isArray(clientsResponse.data) ? clientsResponse.data : [];
+  
+      // Merge category names into client objects based on categoryId
+      const mergedClients = clientsData.map(client => {
+        // Find matching category by comparing client.categoryId with category.id
+        const category = categoriesResponse.find(cat => cat.id === client.categoryId);
+        return {
+          ...client,
+          // Add a new property for the category name
+          categoryName: category ? category.name : "Unknown"
+        };
       });
-
-        setClients(clientsData.filter(client =>
-            client && client.kpClientId != null && client.kpClientSerialNumber != null
-        ));
-        setCategories(categoriesResponse);
-        setError(null);
+  
+      // Optionally filter out clients with missing fields if needed:
+      const validClients = mergedClients.filter(client =>
+        client && client.kpClientId != null && client.kpClientSerialNumber != null
+      );
+  
+      setClients(validClients);
+      setCategories(categoriesResponse); // For filtering dropdown, etc.
+      setError(null);
     } catch (error) {
-        console.error("Error fetching data:", error);
-        setError(error.response?.data?.message || error.message || 'Failed to fetch data');
-        setClients([]);
+      console.error("Error fetching data:", error);
+      setError(error.response?.data?.message || error.message || 'Failed to fetch data');
+      setClients([]);
     } finally {
-        setLoading(false);
+      setLoading(false);
     }
-};
+  };
+  
 
 
   useEffect(() => {
@@ -104,7 +113,7 @@ const ClientTable = () => {
       setFilteredClients(clients);
     } else {
       setFilteredClients(clients.filter(client => 
-        client.categoryRegistered === selectedCategory
+        client.categoryName === selectedCategory
       ));
     }
   }, [selectedCategory, clients]);
@@ -273,10 +282,11 @@ const ClientTable = () => {
                     'N/A'}
                 </TableCell>
                 <TableCell>{client.registeredByUsername || client.registeredBy || 'N/A'}</TableCell>
-                <TableCell>{client.categoryRegistered || 'N/A'}</TableCell>
+                <TableCell>{client.categoryName || 'N/A'}</TableCell>
                 <TableCell>
                   <IconButton 
                     onClick={() => handleUpdate(client)}
+
                     sx={{ mr: 1 }}
                   >
                     <EditIcon />

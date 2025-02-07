@@ -28,6 +28,8 @@ import {
 import axios from "axios";
 import api from "../services/api";
 import { Edit as EditIcon, Delete as DeleteIcon } from "@mui/icons-material";
+import { getCategories } from "../services/api";
+
 
 export function FindClient() {
   const [serialNumber, setSerialNumber] = useState("");
@@ -40,67 +42,58 @@ export function FindClient() {
   const [deleting, setDeleting] = useState(false);
   const [categories, setCategories] = useState([]);
 
-  const getCategories = async () => {
-    try {
-      const response = await api.get("/api/categories");
-      return response.data;
-    } catch (error) {
-      console.error("Error fetching categories:", error);
-      throw error;
-    }
-};
+//   const getCategories = async () => {
+//     try {
+//       const response = await api.get("/api/categories");
+//       return response.data;
+//     } catch (error) {
+//       console.error("Error fetching categories:", error);
+//       throw error;
+//     }
+// };
 
   useEffect(() => {
     // Fetch categories when component mounts
-    const fetchCategories = async () => {
-      try {
-        const categoriesData = await getCategories();
-        setCategories(categoriesData);
-      } catch (error) {
-        console.error("Error fetching categories:", error);
-      }
-    };
-    fetchCategories();
+    // const fetchCategories = async () => {
+     getCategories()
+     .then(setCategories)
+     .catch(error => setError("Error fetching categories: " + error.message));
   }, []);
+
 
   const handleSearch = async () => {
     if (!serialNumber) {
       setError("Please enter a serial number");
       return;
     }
-
+  
     setLoading(true);
     setError("");
     setClient(null);
-
-    const token = localStorage.getItem("token");
-    console.log("Current token:", token);
-
+  
     try {
       const response = await api.get(`/api/clients/findClient/serial/${serialNumber}`);
-      console.log("Search response:", response.data);
-
       if (response.data) {
-        setClient(response.data);
-      } else {
-        setError("No client found with this serial number");
-      }
+      const foundClient = response.data;
+      const category = categories.find(c => c.id === foundClient.categoryId);
+      foundClient.categoryName = category ? category.name : "Unknown";
+      setClient(foundClient);
+    } else {
+      setError("No client found with this serial number");
+    }
     } catch (error) {
       console.error("Search error:", error);
-      // Check if the error is due to authentication
       if (error.response?.status === 403) {
-        if (!token) {
-            setError("Not authenticated. Please log in.");
-          } else {
-            setError("Session expired or invalid. Please log in again.");
-          }
-        } else {
-          setError(error.response?.data?.message || "Failed to find client");
-        }
-      } finally {
-        setLoading(false);
+
+        setError(localStorage.getItem("token") ? "Session expired. Log in again." : "Not authenticated. Please log in.");
+      } else {
+        setError(error.response?.data?.message || "Failed to find client");
       }
-};
+    } finally {
+      setLoading(false);
+    }
+  };
+  
 
   const handleUpdate = () => {
     setEditDialog(true);
@@ -212,7 +205,7 @@ export function FindClient() {
                       client.registeredBy ||
                       "N/A"}
                   </TableCell>
-                  <TableCell>{client.categoryRegistered || "N/A"}</TableCell>
+                  <TableCell>{client.categoryName|| "N/A"}</TableCell>
                   <TableCell>
                     <IconButton onClick={handleUpdate} sx={{ mr: 1 }}>
                       <EditIcon />
