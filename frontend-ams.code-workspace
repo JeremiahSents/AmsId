@@ -1,0 +1,14 @@
+{
+	"folders": [
+		{
+			"path": "../frontend-ams"
+		},
+		{
+			"path": "../backend-ams"
+		}
+	],
+	"settings": {
+		"java.compile.nullAnalysis.mode": "automatic",
+		"java.configuration.updateBuildConfiguration": "interactive"
+	}
+}

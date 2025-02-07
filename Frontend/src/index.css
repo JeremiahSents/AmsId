@@ -1,0 +1,21 @@
+/* src/index.css */
+
+/* Remove Tailwind directives as Chakra UI does not require them */
+
+/* Define global styles using Chakra UI's theme-aware tokens */
+:root {
+  /* Chakra already provides a theme system, these values can be set in theme overrides */
+}
+
+/* Global Styles */
+body {
+  background-color: var(--chakra-colors-gray-50); /* Equivalent to light mode background */
+  color: var(--chakra-colors-gray-900); /* Equivalent to light mode text color */
+}
+
+.dark-mode body {
+  background-color: var(--chakra-colors-gray-900); /* Dark mode background */
+  color: var(--chakra-colors-gray-50); /* Dark mode text color */
+}
+
+/* Remove @apply directives since Chakra handles styles via props */
