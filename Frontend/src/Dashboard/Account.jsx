@@ -152,10 +152,11 @@ export function Account() {
         currentPassword: formData.currentPassword,
       };
 
-      const response = await axios.put(
+      await axios.put(
         `http://localhost:8080/api/users/updateUser/${user.id}`,
         updateData,
         {
+
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
