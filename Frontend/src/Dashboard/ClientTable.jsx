@@ -23,12 +23,27 @@ import {
   MenuItem,
   FormControl,
   InputLabel,
+  useTheme,
+  useMediaQuery,
+  Card,
+  CardContent,
+  Collapse,
 } from "@mui/material";
-import { Edit as EditIcon, Delete as DeleteIcon } from "@mui/icons-material";
+import { Edit as EditIcon, Delete as DeleteIcon, ExpandMore as ExpandMoreIcon ,ExpandLess as ExpandLessIcon} from "@mui/icons-material";
+
 import axios from "axios";
 import { getCategories } from '../services/api';
+import PropTypes from 'prop-types';
 
 const ClientTable = () => {
+
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const isSmall = useMediaQuery(theme.breakpoints.down('sm'));
+
+
+
+
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -41,6 +56,7 @@ const ClientTable = () => {
   const [categories, setCategories] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [filteredClients, setFilteredClients] = useState([]);
+  const [expandedCard, setExpandedCard] = useState(null);
 
   const fetchData = async () => {
     const token = localStorage.getItem("token");
@@ -123,16 +139,6 @@ const ClientTable = () => {
     setEditDialog(true);
   };
 
-  const validateClient = (client) => {
-    if (!client.kpClientFName?.trim()) {
-        throw new Error('First name is required');
-    }
-    if (!client.kpClientLName?.trim()) {
-        throw new Error('Last name is required');
-    }
-    // Add other validations as needed
-  };
-
   const handleUpdateSubmit = async () => {
     if (!selectedClient?.kpClientId) {
         setUpdateMessage({ type: 'error', message: 'Invalid client ID' });
@@ -141,23 +147,22 @@ const ClientTable = () => {
 
     setUpdating(true);
     try {
-      const response = await axios.put(
-        `http://localhost:8080/api/clients/updateClient/${selectedClient.kpClientId}`,
-        {
-            kpClientId: selectedClient.kpClientId,
-            kpClientFName: selectedClient.kpClientFName.trim(),
-            kpClientLName: selectedClient.kpClientLName.trim(),
-            categoryRegistered: selectedClient.categoryRegistered,
-            kpClientSerialNumber: selectedClient.kpClientSerialNumber,
-            kpClientTimeAssigned: selectedClient.kpClientTimeAssigned,
-            registeredBy: selectedClient.registeredBy,
-            registeredByUsername: selectedClient.registeredByUsername
-        },
-        {
-            withCredentials: true // Ensure session cookies are sent
-        }
-    );
-    
+        await axios.put(
+            `http://localhost:8080/api/clients/updateClient/${selectedClient.kpClientId}`,
+            {
+                kpClientId: selectedClient.kpClientId,
+                kpClientFName: selectedClient.kpClientFName.trim(),
+                kpClientLName: selectedClient.kpClientLName.trim(),
+                categoryRegistered: selectedClient.categoryRegistered,
+                kpClientSerialNumber: selectedClient.kpClientSerialNumber,
+                kpClientTimeAssigned: selectedClient.kpClientTimeAssigned,
+                registeredBy: selectedClient.registeredBy,
+                registeredByUsername: selectedClient.registeredByUsername
+            },
+            {
+                withCredentials: true // Ensure session cookies are sent
+            }
+        );
 
         setEditDialog(false);
         await fetchData(); // Refresh the table
@@ -224,9 +229,98 @@ const ClientTable = () => {
       </Box>
     );
   }
+  const MobileClientCard = ({ client, index }) => {
+    const isExpanded = expandedCard === index;
+    
+    return (
+      <Card sx={{ mb: 2, width: '100%' }}>
+        <CardContent>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+            <Typography variant="h6">
+              {client.kpClientFName} {client.kpClientLName}
+            </Typography>
+            <IconButton onClick={() => setExpandedCard(isExpanded ? null : index)}>
+              {isExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+            </IconButton>
+          </Box>
+          
+          <Typography color="textSecondary" gutterBottom>
+            ID: {client.kpClientId}
+          </Typography>
+          
+          <Collapse in={isExpanded}>
+            <Stack spacing={1} sx={{ mt: 2 }}>
+              <Typography>
+                <strong>Serial Number:</strong> {client.kpClientSerialNumber || 'N/A'}
+              </Typography>
+              <Typography>
+                <strong>Time Assigned:</strong> {client.kpClientTimeAssigned ? 
+                  new Date(client.kpClientTimeAssigned).toLocaleString() : 
+                  'N/A'}
+              </Typography>
+              <Typography>
+                <strong>Registered By:</strong> {client.registeredByUsername || client.registeredBy || 'N/A'}
+              </Typography>
+              <Typography>
+                <strong>Category:</strong> {client.categoryName || 'N/A'}
+              </Typography>
+            </Stack>
+          </Collapse>
+
+          <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
+            <IconButton onClick={() => handleUpdate(client)} size="small">
+              <EditIcon />
+            </IconButton>
+            <IconButton onClick={() => handleDeleteConfirm(client)} color="error" size="small">
+              <DeleteIcon />
+            </IconButton>
+          </Box>
+        </CardContent>
+      </Card>
+    );
+  };
+
+  // Add prop types validation
+  MobileClientCard.propTypes = {
+    client: PropTypes.shape({
+      kpClientFName: PropTypes.string.isRequired,
+      kpClientLName: PropTypes.string.isRequired,
+      kpClientId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+      kpClientSerialNumber: PropTypes.string,
+      kpClientTimeAssigned: PropTypes.string,
+      registeredByUsername: PropTypes.string,
+      registeredBy: PropTypes.string,
+      categoryName: PropTypes.string,
+    }).isRequired,
+    index: PropTypes.number.isRequired,
+  };
+
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', p: 5 }}>
+        <CircularProgress size={40} />
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Box sx={{ p: 3 }}>
+        <Alert severity="error" sx={{ mb: 2 }}>
+          Error: {error}
+        </Alert>
+        <Typography variant="body1" sx={{ mt: 2 }}>Please check:</Typography>
+        <Stack spacing={1} sx={{ mt: 1 }}>
+          <Typography>1. Backend server is running</Typography>
+          <Typography>2. VITE_API_URL is correct in .env file</Typography>
+          <Typography>3. API endpoint path is correct</Typography>
+        </Stack>
+      </Box>
+    );
+  }
 
   return (
-    <Box sx={{ p: 5, overflowX: "auto" }}>
+    <Box sx={{ p: { xs: 2, sm: 3, md: 5 }, overflowX: "auto" }}>
       {updateMessage.message && (
         <Alert 
           severity={updateMessage.type} 
@@ -238,7 +332,7 @@ const ClientTable = () => {
       )}
 
       <Box sx={{ mb: 3 }}>
-        <FormControl sx={{ minWidth: 200 }}>
+        <FormControl sx={{ width: { xs: '100%', sm: 200 } }}>
           <InputLabel>Filter by Category</InputLabel>
           <Select
             value={selectedCategory}
@@ -255,57 +349,75 @@ const ClientTable = () => {
         </FormControl>
       </Box>
 
-      <TableContainer component={Paper}>
-        <Table size="small">
-          <TableHead>
-            <TableRow>
-              <TableCell>ID</TableCell>
-              <TableCell>First Name</TableCell>
-              <TableCell>Last Name</TableCell>
-              <TableCell>Serial Number</TableCell>
-              <TableCell>Time Assigned</TableCell>
-              <TableCell>Registered By</TableCell>
-              <TableCell>Category</TableCell>
-              <TableCell>Actions</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {filteredClients.map((client, index) => (
-              <TableRow key={client.kpClientId || `client-${index}`}>
-                <TableCell>{client.kpClientId}</TableCell>
-                <TableCell>{client.kpClientFName}</TableCell>
-                <TableCell>{client.kpClientLName}</TableCell>
-                <TableCell>{client.kpClientSerialNumber || 'N/A'}</TableCell>
-                <TableCell>
-                  {client.kpClientTimeAssigned ? 
-                    new Date(client.kpClientTimeAssigned).toLocaleString() : 
-                    'N/A'}
-                </TableCell>
-                <TableCell>{client.registeredByUsername || client.registeredBy || 'N/A'}</TableCell>
-                <TableCell>{client.categoryName || 'N/A'}</TableCell>
-                <TableCell>
-                  <IconButton 
-                    onClick={() => handleUpdate(client)}
-
-                    sx={{ mr: 1 }}
-                  >
-                    <EditIcon />
-                  </IconButton>
-                  <IconButton 
-                    color="error"
-                    onClick={() => handleDeleteConfirm(client)}
-                  >
-                    <DeleteIcon />
-                  </IconButton>
-                </TableCell>
+      {isMobile ? (
+        // Mobile view using cards
+        <Stack spacing={2}>
+          {filteredClients.map((client, index) => (
+            <MobileClientCard 
+              key={client.kpClientId || `client-${index}`} 
+              client={client}
+              index={index}
+            />
+          ))}
+        </Stack>
+      ) : (
+        // Desktop view using table
+        <TableContainer component={Paper}>
+          <Table size={isSmall ? "small" : "medium"}>
+            <TableHead>
+              <TableRow>
+                <TableCell>ID</TableCell>
+                <TableCell>First Name</TableCell>
+                <TableCell>Last Name</TableCell>
+                <TableCell>Serial Number</TableCell>
+                <TableCell>Time Assigned</TableCell>
+                <TableCell>Registered By</TableCell>
+                <TableCell>Category</TableCell>
+                <TableCell>Actions</TableCell>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
+            </TableHead>
+            <TableBody>
+              {filteredClients.map((client, index) => (
+                <TableRow key={client.kpClientId || `client-${index}`}>
+                  <TableCell>{client.kpClientId}</TableCell>
+                  <TableCell>{client.kpClientFName}</TableCell>
+                  <TableCell>{client.kpClientLName}</TableCell>
+                  <TableCell>{client.kpClientSerialNumber || 'N/A'}</TableCell>
+                  <TableCell>
+                    {client.kpClientTimeAssigned ? 
+                      new Date(client.kpClientTimeAssigned).toLocaleString() : 
+                      'N/A'}
+                  </TableCell>
+                  <TableCell>{client.registeredByUsername || client.registeredBy || 'N/A'}</TableCell>
+                  <TableCell>{client.categoryName || 'N/A'}</TableCell>
+                  <TableCell>
+                    <IconButton 
+                      onClick={() => handleUpdate(client)}
+                      sx={{ mr: 1 }}
+                    >
+                      <EditIcon />
+                    </IconButton>
+                    <IconButton 
+                      color="error"
+                      onClick={() => handleDeleteConfirm(client)}
+                    >
+                      <DeleteIcon />
+                    </IconButton>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      )}
 
       {/* Edit Dialog */}
-      <Dialog open={editDialog} onClose={() => setEditDialog(false)}>
+      <Dialog 
+        open={editDialog} 
+        onClose={() => setEditDialog(false)}
+        fullWidth
+        maxWidth="sm"
+      >
         <DialogTitle>Edit Client</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 2 }}>
@@ -346,7 +458,7 @@ const ClientTable = () => {
             </FormControl>
           </Stack>
         </DialogContent>
-        <DialogActions>
+        <DialogActions sx={{ p: 2 }}>
           <Button onClick={() => setEditDialog(false)} disabled={updating}>
             Cancel
           </Button>
@@ -361,14 +473,19 @@ const ClientTable = () => {
       </Dialog>
 
       {/* Delete Confirmation Dialog */}
-      <Dialog open={deleteDialog} onClose={() => setDeleteDialog(false)}>
+      <Dialog 
+        open={deleteDialog} 
+        onClose={() => setDeleteDialog(false)}
+        fullWidth
+        maxWidth="xs"
+      >
         <DialogTitle>Confirm Delete</DialogTitle>
         <DialogContent>
           <Typography>
             Are you sure you want to delete client {selectedClient?.kpClientFName} {selectedClient?.kpClientLName}?
           </Typography>
         </DialogContent>
-        <DialogActions>
+        <DialogActions sx={{ p: 2 }}>
           <Button onClick={() => setDeleteDialog(false)} disabled={deleting}>
             Cancel
           </Button>

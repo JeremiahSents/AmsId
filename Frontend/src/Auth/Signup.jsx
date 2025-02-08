@@ -1,5 +1,5 @@
 /* eslint-disable no-unused-vars */
-import { Button, TextField, Stack, Box, Typography } from "@mui/material";
+import { Button, TextField, Stack, Box, Typography, Container } from "@mui/material";
 import { Field } from "@/components/ui/field";
 import { PasswordInput } from "@/components/ui/password-input";
 import { useState } from "react";
@@ -49,6 +49,7 @@ export function Signup() {
   };
 
   return (
+    <Container maxWidth="sm" sx={{ display: "flex", flexDirection: "column", alignItems: "center", minHeight: "100vh", justifyContent: "center" }}>
     <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
       <img src={logo} alt="Logo" style={{ width: '100px', marginBottom: '20px' }} />
       
@@ -113,5 +114,6 @@ export function Signup() {
         <Link to="/" style={{ color: "primary" }}>Login</Link>
       </Stack>
     </Box>
+    </Container>
   )
 };

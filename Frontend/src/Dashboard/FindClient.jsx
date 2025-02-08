@@ -24,14 +24,22 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  useTheme,
+  useMediaQuery,
+  Card,
+  CardContent,
+  Divider,
 } from "@mui/material";
 import axios from "axios";
 import api from "../services/api";
-import { Edit as EditIcon, Delete as DeleteIcon } from "@mui/icons-material";
+import { Edit as EditIcon, Delete as DeleteIcon, Search as SearchIcon} from "@mui/icons-material";
 import { getCategories } from "../services/api";
+import PropTypes from "prop-types";
 
 
 export function FindClient() {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [serialNumber, setSerialNumber] = useState("");
   const [client, setClient] = useState(null);
   const [error, setError] = useState("");
@@ -42,15 +50,7 @@ export function FindClient() {
   const [deleting, setDeleting] = useState(false);
   const [categories, setCategories] = useState([]);
 
-//   const getCategories = async () => {
-//     try {
-//       const response = await api.get("/api/categories");
-//       return response.data;
-//     } catch (error) {
-//       console.error("Error fetching categories:", error);
-//       throw error;
-//     }
-// };
+
 
   useEffect(() => {
     // Fetch categories when component mounts
@@ -149,34 +149,154 @@ export function FindClient() {
       setDeleting(false);
     }
 };
-
-  return (
-    <Box sx={{ p: 3 }}>
-      <Paper sx={{ p: 3, mb: 3 }}>
-        <Typography variant="h6" gutterBottom>
-          Find Client by Serial Number
-        </Typography>
-        <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
-          <TextField
-            label="Serial Number"
-            value={serialNumber}
-            onChange={(e) => setSerialNumber(e.target.value)}
-            fullWidth
-          />
-          <Button variant="contained" onClick={handleSearch} disabled={loading}>
-            {loading ? <CircularProgress size={24} /> : "Search"}
-          </Button>
+const MobileClientCard = ({ client }) => (
+  <Card sx={{ mt: 2 }}>
+    <CardContent>
+      <Stack spacing={2}>
+        <Box>
+          <Typography variant="subtitle2" color="textSecondary">
+            Client ID
+          </Typography>
+          <Typography variant="body1">
+            {client.kpClientId}
+          </Typography>
         </Box>
 
-        {error && (
-          <Alert severity="error" sx={{ mb: 2 }}>
-            {error}
-          </Alert>
-        )}
+        <Box>
+          <Typography variant="subtitle2" color="textSecondary">
+            Name
+          </Typography>
+          <Typography variant="body1">
+            {client.kpClientFName} {client.kpClientLName}
+          </Typography>
+        </Box>
 
-        {client && (
-          <TableContainer>
-            <Table>
+        <Box>
+          <Typography variant="subtitle2" color="textSecondary">
+            Serial Number
+          </Typography>
+          <Typography variant="body1">
+            {client.kpClientSerialNumber}
+          </Typography>
+        </Box>
+
+        <Box>
+          <Typography variant="subtitle2" color="textSecondary">
+            Time Assigned
+          </Typography>
+          <Typography variant="body1">
+            {client.kpClientTimeAssigned
+              ? new Date(client.kpClientTimeAssigned).toLocaleString()
+              : "N/A"}
+          </Typography>
+        </Box>
+
+        <Box>
+          <Typography variant="subtitle2" color="textSecondary">
+            Registered By
+          </Typography>
+          <Typography variant="body1">
+            {client.registeredByUsername || client.registeredBy || "N/A"}
+          </Typography>
+        </Box>
+
+        <Box>
+          <Typography variant="subtitle2" color="textSecondary">
+            Category
+          </Typography>
+          <Typography variant="body1">
+            {client.categoryName || "N/A"}
+          </Typography>
+        </Box>
+
+        <Divider />
+
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
+          <Button
+            startIcon={<EditIcon />}
+            onClick={handleUpdate}
+            variant="outlined"
+          >
+            Edit
+          </Button>
+          <Button
+            startIcon={<DeleteIcon />}
+            onClick={handleDeleteConfirm}
+            variant="contained"
+            color="error"
+          >
+            Delete
+          </Button>
+        </Box>
+      </Stack>
+    </CardContent>
+  </Card>
+);
+
+// Add prop types validation for MobileClientCard
+MobileClientCard.propTypes = {
+  client: PropTypes.shape({
+    kpClientFName: PropTypes.string.isRequired,
+    kpClientLName: PropTypes.string.isRequired,
+    kpClientId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+    kpClientSerialNumber: PropTypes.string.isRequired, // Marked as required
+    kpClientTimeAssigned: PropTypes.string,
+    registeredByUsername: PropTypes.string,
+    registeredBy: PropTypes.string,
+    categoryName: PropTypes.string,
+  }).isRequired,
+};
+
+return (
+  <Box sx={{ p: { xs: 2, sm: 3 } }}>
+    <Paper sx={{ p: { xs: 2, sm: 3 } }}>
+      <Typography variant="h6" gutterBottom>
+        Find Client by Serial Number
+      </Typography>
+      
+      {/* Search Section */}
+      <Stack 
+        direction={{ xs: 'column', sm: 'row' }} 
+        spacing={2} 
+        sx={{ mb: 2 }}
+      >
+        <TextField
+          label="Serial Number"
+          value={serialNumber}
+          onChange={(e) => setSerialNumber(e.target.value)}
+          fullWidth
+          onKeyPress={(e) => {
+            if (e.key === 'Enter') {
+              handleSearch();
+            }
+          }}
+        />
+        <Button 
+          variant="contained" 
+          onClick={handleSearch} 
+          disabled={loading}
+          startIcon={loading ? <CircularProgress size={20} /> : <SearchIcon />}
+          sx={{ 
+            minWidth: { xs: '100%', sm: '120px' }
+          }}
+        >
+          {loading ? "Searching" : "Search"}
+        </Button>
+      </Stack>
+
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+      )}
+
+      {/* Client Information Display */}
+      {client && (
+        isMobile ? (
+          <MobileClientCard client={client} />
+        ) : (
+          <TableContainer sx={{ overflowX: 'auto' }}>
+            <Table size="small">
               <TableHead>
                 <TableRow>
                   <TableCell>ID</TableCell>
@@ -201,11 +321,9 @@ export function FindClient() {
                       : "N/A"}
                   </TableCell>
                   <TableCell>
-                    {client.registeredByUsername ||
-                      client.registeredBy ||
-                      "N/A"}
+                    {client.registeredByUsername || client.registeredBy || "N/A"}
                   </TableCell>
-                  <TableCell>{client.categoryName|| "N/A"}</TableCell>
+                  <TableCell>{client.categoryName || "N/A"}</TableCell>
                   <TableCell>
                     <IconButton onClick={handleUpdate} sx={{ mr: 1 }}>
                       <EditIcon />
@@ -218,94 +336,111 @@ export function FindClient() {
               </TableBody>
             </Table>
           </TableContainer>
-        )}
-      </Paper>
+        )
+      )}
+    </Paper>
 
-      {/* Edit Dialog */}
-      <Dialog open={editDialog} onClose={() => setEditDialog(false)}>
-        <DialogTitle>Edit Client</DialogTitle>
-        <DialogContent>
-          <Stack spacing={2} sx={{ mt: 2 }}>
-            <TextField
-              label="First Name"
-              value={client?.kpClientFName || ""}
+    {/* Edit Dialog */}
+    <Dialog 
+      open={editDialog} 
+      onClose={() => setEditDialog(false)}
+      fullWidth
+      maxWidth="sm"
+      PaperProps={{
+        sx: { m: { xs: 2, sm: 3 } }
+      }}
+    >
+      <DialogTitle>Edit Client</DialogTitle>
+      <DialogContent>
+        <Stack spacing={3} sx={{ mt: 2 }}>
+          <TextField
+            label="First Name"
+            value={client?.kpClientFName || ""}
+            onChange={(e) =>
+              setClient({
+                ...client,
+                kpClientFName: e.target.value,
+              })
+            }
+            fullWidth
+          />
+          <TextField
+            label="Last Name"
+            value={client?.kpClientLName || ""}
+            onChange={(e) =>
+              setClient({
+                ...client,
+                kpClientLName: e.target.value,
+              })
+            }
+            fullWidth
+          />
+          <FormControl fullWidth>
+            <InputLabel>Category</InputLabel>
+            <Select
+              value={client?.categoryRegistered || ""}
+              label="Category"
               onChange={(e) =>
                 setClient({
                   ...client,
-                  kpClientFName: e.target.value,
+                  categoryRegistered: e.target.value,
                 })
               }
-              fullWidth
-            />
-            <TextField
-              label="Last Name"
-              value={client?.kpClientLName || ""}
-              onChange={(e) =>
-                setClient({
-                  ...client,
-                  kpClientLName: e.target.value,
-                })
-              }
-              fullWidth
-            />
-            <FormControl fullWidth>
-              <InputLabel>Category</InputLabel>
-              <Select
-                value={client?.categoryRegistered || ""}
-                label="Category"
-                onChange={(e) =>
-                  setClient({
-                    ...client,
-                    categoryRegistered: e.target.value,
-                  })
-                }
-              >
-                {categories.map((category) => (
-                  <MenuItem key={category.id} value={category.name}>
-                    {category.name}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Stack>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setEditDialog(false)} disabled={updating}>
-            Cancel
-          </Button>
-          <Button
-            onClick={handleUpdateSubmit}
-            variant="contained"
-            disabled={updating}
-          >
-            {updating ? "Updating..." : "Update"}
-          </Button>
-        </DialogActions>
-      </Dialog>
+            >
+              {categories.map((category) => (
+                <MenuItem key={category.id} value={category.name}>
+                  {category.name}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </Stack>
+      </DialogContent>
+      <DialogActions sx={{ p: 2, gap: 1 }}>
+        <Button onClick={() => setEditDialog(false)} disabled={updating}>
+          Cancel
+        </Button>
+        <Button
+          onClick={handleUpdateSubmit}
+          variant="contained"
+          disabled={updating}
+        >
+          {updating ? "Updating..." : "Update"}
+        </Button>
+      </DialogActions>
+    </Dialog>
 
-      {/* Delete Confirmation Dialog */}
-      <Dialog open={deleteDialog} onClose={() => setDeleteDialog(false)}>
-        <DialogTitle>Confirm Delete</DialogTitle>
-        <DialogContent>
-          <Typography>
-            Are you sure you want to delete client {client?.kpClientFName}{" "}
-            {client?.kpClientLName}?
-          </Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDeleteDialog(false)} disabled={deleting}>
-            Cancel
-          </Button>
-          <Button
-            onClick={handleDeleteSubmit}
-            color="error"
-            variant="contained"
-            disabled={deleting}
-          >
-            {deleting ? "Deleting..." : "Delete"}
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </Box>
-  );
+    {/* Delete Confirmation Dialog */}
+    <Dialog 
+      open={deleteDialog} 
+      onClose={() => setDeleteDialog(false)}
+      fullWidth
+      maxWidth="xs"
+      PaperProps={{
+        sx: { m: { xs: 2, sm: 3 } }
+      }}
+    >
+      <DialogTitle>Confirm Delete</DialogTitle>
+      <DialogContent>
+        <Typography>
+          Are you sure you want to delete client {client?.kpClientFName}{" "}
+          {client?.kpClientLName}?
+        </Typography>
+      </DialogContent>
+      <DialogActions sx={{ p: 2, gap: 1 }}>
+        <Button onClick={() => setDeleteDialog(false)} disabled={deleting}>
+          Cancel
+        </Button>
+        <Button
+          onClick={handleDeleteSubmit}
+          color="error"
+          variant="contained"
+          disabled={deleting}
+        >
+          {deleting ? "Deleting..." : "Delete"}
+        </Button>
+      </DialogActions>
+    </Dialog>
+  </Box>
+);
 }

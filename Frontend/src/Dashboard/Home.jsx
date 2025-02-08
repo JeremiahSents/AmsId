@@ -12,7 +12,15 @@ import {
   InputLabel,
   Alert,
   AlertTitle,
+  Drawer,
+  IconButton,
+  AppBar,
+  Toolbar,
+  Container,
+  useTheme,
+  useMediaQuery,
 } from "@mui/material";
+import MenuIcon from "@mui/icons-material/Menu";
 import {
   Person as PersonIcon,
   List as ListIcon,
@@ -20,18 +28,23 @@ import {
   Search as SearchIcon,
   ManageAccounts as ManageAccountsIcon,
 } from "@mui/icons-material";
+
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
-// import axios from 'axios';
 import api from "../services/api";
 import { generateSerialNumber, getCategories } from "../services/api";
 
 export function Home() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const bgColor = "grey.100";
   const OTHER_CATEGORY_VALUE = "Other";
+
+
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false); // For mobile menu
 
   const [formData, setFormData] = useState({
     serialNumber: "",
@@ -112,6 +125,7 @@ export function Home() {
       [name]: value,
     }));
   };
+
   const validateForm = () => {
     const errors = [];
     if (!formData.firstName?.trim()) {
@@ -132,56 +146,6 @@ export function Home() {
     return errors;
   };
 
-  //   const fetchSerialNumber = async () => {
-  //     if (!serialNumberFetched && formData.serialNumber === "") {
-  //     try {
-  //       const serialNumber = await generateSerialNumber();
-  //       console.log("Fetched serial number:", serialNumber);
-  //       setFormData((prev) => ({
-  //         ...prev,
-  //         serialNumber: serialNumber.toString(),
-  //       }));
-  //       setSerialNumberFetched(true);
-  //     } catch (error) {
-  //       console.error("Error fetching serial number:", error);
-  //       setError("Failed to fetch serial number. Please try again later.");
-  //     }
-  //   }
-  //   };
-  //   fetchSerialNumber();
-  // }, [serialNumberFetched, formData.serialNumber]);
-
-  // const [serialNumberFetched, setSerialNumberFetched] = useState(false); // Track if serial number was fetched
-  // const OTHER_CATEGORY_VALUE = "Other";
-
-  //   const handleChange = (e) => {
-  //     const { name, value } = e.target;
-  //     setFormData((prev) => ({
-  //       ...prev,
-  //       [name]: value,
-  //     }));
-  //   };
-
-  //   const validateForm = () => {
-  //     const errors = [];
-  //     if (!formData.firstName?.trim()) {
-  //       errors.push("First name is required");
-  //     }
-  //     if (!formData.lastName?.trim()) {
-  //       errors.push("Last name is required");
-  //     }
-  //     if (!formData.categoryId) {
-  //       errors.push("Category is required");
-  //     }
-  //     if (
-  //       formData.categoryId === OTHER_CATEGORY_VALUE &&
-  //       !formData.newCategoryName.trim()
-  //     ) {
-  //       errors.push("Please enter a new category name for 'Other' category.");
-  //     }
-  //     return errors;
-  //   };
-
   const handleSubmit = async () => {
     const errors = validateForm();
     if (errors.length > 0) {
@@ -197,56 +161,25 @@ export function Home() {
         categoryId:
           formData.categoryId === OTHER_CATEGORY_VALUE
             ? null
-            : parseInt(formData.categoryId, 10), // Send null if 'Other', backend will handle new category
+            : parseInt(formData.categoryId, 10),
         newCategoryName:
           formData.categoryId === OTHER_CATEGORY_VALUE
             ? formData.newCategoryName.trim()
-            : null, // Send new category name if 'Other'
+            : null,
         registeredBy: user.username,
         kpClientSerialNumber: formData.serialNumber,
       };
 
       console.log("Submitting client data:", clientData);
 
-      // if (!formData.firstName?.trim() || !formData.lastName?.trim()) {
-      //   setError("Please fill in all required fields");
-      //   return;
-      // }
-
-      // if (!formData.categoryId && formData.categoryId !== OTHER_CATEGORY_VALUE) {
-      //   setError("Please select a category."); // Error if no category selected and not 'Other'
-      //   return;
-      // }
-
-      // if (
-      //   formData.categoryId === OTHER_CATEGORY_VALUE &&
-      //   !formData.newCategoryName.trim()
-      // ) {
-      //   setError("Please enter a new category name for 'Other' category."); // Error if 'Other' but no new category name
-      //   return;
-      // }
-
       const response = await api.post("/api/clients/register", clientData);
 
-      // const response = await axios.post(
-      //     'http://localhost:8080/api/clients/register',
-      //     clientData,
-      //     {
-      //         headers: {
-      //             Authorization: `Bearer ${token}`, // Attach token if required
-      //             'Content-Type': 'application/json',
-      //         },
-      //     }
-      // );
-
       if (response.status === 201) {
-        // Get new serial number for next client
         localStorage.removeItem("serialNumber");
         const newSerialNumber = await generateSerialNumber();
         const newSerialNumberString = newSerialNumber.toString();
         localStorage.setItem("serialNumber", newSerialNumberString);
 
-        // Reset form with new serial number
         setFormData({
           serialNumber: newSerialNumberString,
           firstName: "",
@@ -254,7 +187,7 @@ export function Home() {
           categoryId: "",
           newCategoryName: "",
         });
-      
+
         setError("");
         setSuccessMessage("Client registered successfully!");
 
@@ -280,27 +213,24 @@ export function Home() {
     navigate("/login");
   };
 
-  return (
-    <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: bgColor }}>
-      {/* Sidebar */}
-      <Stack
-        spacing={2}
-        sx={{
-          width: 250,
-          p: 2,
-          bgcolor: "primary.main",
-          color: "white",
-        }}
-      >
-        <Typography variant="h5" fontWeight="bold">
-          AMS Dashboard
-        </Typography>
 
+  const SidebarContent = () => (
+    <Stack spacing={3} sx={{ p: 3, color: "white", height: "100%" }}>
+      <Typography variant="h5" fontWeight="bold" sx={{ mb: 4 }}>
+        AMS Dashboard
+      </Typography>
+
+      <Stack spacing={2}>
         <Button
           variant="text"
           color="inherit"
           startIcon={<SearchIcon />}
-          onClick={() => navigate("/find-client")}
+          onClick={() => {
+            navigate("/find-client");
+            if (isMobile) setIsDrawerOpen(false);
+          }}
+          fullWidth
+          sx={{ justifyContent: "flex-start" }}
         >
           Find Client by ID
         </Button>
@@ -309,7 +239,12 @@ export function Home() {
           variant="text"
           color="inherit"
           startIcon={<ManageAccountsIcon />}
-          onClick={() => navigate("/account")}
+          onClick={() => {
+            navigate("/account");
+            if (isMobile) setIsDrawerOpen(false);
+          }}
+          fullWidth
+          sx={{ justifyContent: "flex-start" }}
         >
           Manage Account
         </Button>
@@ -318,125 +253,211 @@ export function Home() {
           variant="text"
           color="inherit"
           startIcon={<ListIcon />}
-          onClick={() => navigate("/clients")}
+          onClick={() => {
+            navigate("/clients");
+            if (isMobile) setIsDrawerOpen(false);
+          }}
+          fullWidth
+          sx={{ justifyContent: "flex-start" }}
         >
           Find All Patients
         </Button>
-
-        <Button
-          variant="outlined"
-          color="error"
-          startIcon={<LogoutIcon />}
-          sx={{ mt: "auto" }}
-          onClick={handleLogout}
-        >
-          Logout
-        </Button>
       </Stack>
 
-      {/* Main Content */}
-      <Stack spacing={4} sx={{ flex: 1, p: 4, alignItems: "center" }}>
-        <Paper
+      <Button
+        variant="outlined"
+        color="error"
+        startIcon={<LogoutIcon />}
+        onClick={handleLogout}
+        sx={{ mt: "auto" }}
+        fullWidth
+      >
+        Logout
+      </Button>
+    </Stack>
+  );
+
+  return (
+    <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: bgColor }}>
+      {/* Mobile App Bar */}
+      <AppBar 
+        position="fixed" 
+        sx={{ 
+          display: { xs: "block", md: "none" },
+          zIndex: (theme) => theme.zIndex.drawer + 1
+        }}
+      >
+        <Toolbar>
+          <IconButton
+            color="inherit"
+            edge="start"
+            onClick={() => setIsDrawerOpen(!isDrawerOpen)}
+            sx={{ mr: 2 }}
+          >
+            <MenuIcon />
+          </IconButton>
+          <Typography variant="h6" noWrap component="div">
+            AMS Dashboard
+          </Typography>
+        </Toolbar>
+      </AppBar>
+
+      {/* Sidebar - Permanent for desktop, Drawer for mobile */}
+      {isMobile ? (
+        <Drawer
+          variant="temporary"
+          open={isDrawerOpen}
+          onClose={() => setIsDrawerOpen(false)}
+          ModalProps={{ keepMounted: true }}
           sx={{
-            p: 2,
-            width: "100%",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
+            width: 280,
+            flexShrink: 0,
+            [`& .MuiDrawer-paper`]: {
+              width: 280,
+              bgcolor: "primary.main",
+            },
           }}
         >
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-            <PersonIcon />
-            <Typography variant="h6">Welcome, {user?.username}</Typography>
-          </Box>
-        </Paper>
+          <Toolbar /> {/* Spacer for AppBar */}
+          <SidebarContent />
+        </Drawer>
+      ) : (
+        <Box
+          component="nav"
+          sx={{
+            width: 280,
+            flexShrink: 0,
+            bgcolor: "primary.main",
+            height: "100vh",
+            position: "sticky",
+            top: 0,
+          }}
+        >
+          <SidebarContent />
+        </Box>
+      )}
 
-        <Paper sx={{ p: 4, maxWidth: 600, width: "100%" }}>
-          <Typography variant="h5" gutterBottom>
-            Patient Intake Form
-          </Typography>
-
-          {error && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              <AlertTitle>Error</AlertTitle>
-              {error}
-            </Alert>
-          )}
-
-          {successMessage && (
-            <Alert severity="success" sx={{ mb: 2 }}>
-              <AlertTitle>Success</AlertTitle>
-              {successMessage}
-            </Alert>
-          )}
-
-          <Stack spacing={2} component="form" sx={{ mt: 2 }}>
-            <TextField
-              label="Serial Number"
-              value={formData.serialNumber}
-              disabled
-              fullWidth
-            />
-            <TextField
-              label="First Name"
-              name="firstName"
-              value={formData.firstName}
-              onChange={handleChange}
-              fullWidth
-            />
-            <TextField
-              label="Last Name"
-              name="lastName"
-              value={formData.lastName}
-              onChange={handleChange}
-              fullWidth
-            />
-            <FormControl fullWidth>
-              <InputLabel>Category</InputLabel>
-              <Select
-                name="categoryId"
-                value={formData.categoryId}
-                label="Category"
-                onChange={handleChange}
-              >
-                <MenuItem value="">
-                  <em>Select Category</em>
-                </MenuItem>
-                {categories.map((category) => (
-                  <MenuItem key={category.id} value={category.id}>
-                    {category.name}
-                  </MenuItem>
-                ))}
-                <MenuItem value={OTHER_CATEGORY_VALUE}>
-                  {" "}
-                  {/* "Other" Option */}
-                  Other
-                </MenuItem>
-              </Select>
-            </FormControl>
-
-            {/* Conditionally render new category input */}
-            {formData.categoryId === OTHER_CATEGORY_VALUE && (
-              <TextField
-                label="New Category Name"
-                name="newCategoryName"
-                value={formData.newCategoryName}
-                onChange={handleChange}
-                fullWidth
-                required // Make required when "Other" is selected
-              />
-            )}
-            <Button
-              variant="contained"
-              color="primary"
-              onClick={handleSubmit}
-              disabled={loading}
+      {/* Main Content */}
+      <Box
+        component="main"
+        sx={{
+          flexGrow: 1,
+          p: 3,
+          width: "100%",
+          mt: { xs: "64px", md: 0 },
+        }}
+      >
+        <Container maxWidth="lg">
+          <Stack spacing={4}>
+            {/* Welcome Card */}
+            <Paper
+              elevation={2}
+              sx={{
+                p: 3,
+                display: "flex",
+                alignItems: "center",
+                gap: 2,
+              }}
             >
-              {loading ? <CircularProgress size={24} /> : "Submit"}
-            </Button>
+              <PersonIcon color="primary" />
+              <Typography variant="h6">Welcome, {user?.username}</Typography>
+            </Paper>
+
+            {/* Form Card */}
+            <Paper
+              elevation={2}
+              sx={{
+                p: 4,
+                width: "100%",
+                maxWidth: "800px",
+                mx: "auto",
+              }}
+            >
+              <Typography variant="h5" gutterBottom>
+                Patient Intake Form
+              </Typography>
+
+              {error && (
+                <Alert severity="error" sx={{ mb: 3 }}>
+                  <AlertTitle>Error</AlertTitle>
+                  {error}
+                </Alert>
+              )}
+
+              {successMessage && (
+                <Alert severity="success" sx={{ mb: 3 }}>
+                  <AlertTitle>Success</AlertTitle>
+                  {successMessage}
+                </Alert>
+              )}
+
+              <Stack spacing={3} component="form">
+                <TextField
+                  label="Serial Number"
+                  value={formData.serialNumber}
+                  disabled
+                  fullWidth
+                />
+                <TextField
+                  label="First Name"
+                  name="firstName"
+                  value={formData.firstName}
+                  onChange={handleChange}
+                  fullWidth
+                />
+                <TextField
+                  label="Last Name"
+                  name="lastName"
+                  value={formData.lastName}
+                  onChange={handleChange}
+                  fullWidth
+                />
+                <FormControl fullWidth>
+                  <InputLabel>Category</InputLabel>
+                  <Select
+                    name="categoryId"
+                    value={formData.categoryId}
+                    label="Category"
+                    onChange={handleChange}
+                  >
+                    <MenuItem value="">
+                      <em>Select Category</em>
+                    </MenuItem>
+                    {categories.map((category) => (
+                      <MenuItem key={category.id} value={category.id}>
+                        {category.name}
+                      </MenuItem>
+                    ))}
+                    <MenuItem value={OTHER_CATEGORY_VALUE}>Other</MenuItem>
+                  </Select>
+                </FormControl>
+
+                {formData.categoryId === OTHER_CATEGORY_VALUE && (
+                  <TextField
+                    label="New Category Name"
+                    name="newCategoryName"
+                    value={formData.newCategoryName}
+                    onChange={handleChange}
+                    fullWidth
+                    required
+                  />
+                )}
+                
+                <Button
+                  variant="contained"
+                  color="primary"
+                  onClick={handleSubmit}
+                  disabled={loading}
+                  size="large"
+                  sx={{ mt: 2 }}
+                >
+                  {loading ? <CircularProgress size={24} /> : "Submit"}
+                </Button>
+              </Stack>
+            </Paper>
           </Stack>
-        </Paper>
-      </Stack>
+        </Container>
+      </Box>
     </Box>
   );
 }
