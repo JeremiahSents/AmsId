@@ -35,14 +35,15 @@ import axios from "axios";
 import { getCategories } from '../services/api';
 import PropTypes from 'prop-types';
 
+
 const ClientTable = () => {
 
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const isSmall = useMediaQuery(theme.breakpoints.down('sm'));
 
-
-
+  // Define baseUrl here
+  const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -64,7 +65,6 @@ const ClientTable = () => {
   
     setLoading(true);
     try {
-      const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080';
       const token = localStorage.getItem("token");
   
       const [clientsResponse, categoriesResponse] = await Promise.all([
@@ -147,8 +147,13 @@ const ClientTable = () => {
 
     setUpdating(true);
     try {
+        const token = localStorage.getItem("token");
+        if (!token) {
+            throw new Error('No authentication token found');
+        }
+
         await axios.put(
-            `http://localhost:8080/api/clients/updateClient/${selectedClient.kpClientId}`,
+            `${baseUrl}/api/clients/updateClient/${selectedClient.kpClientId}`,
             {
                 kpClientId: selectedClient.kpClientId,
                 kpClientFName: selectedClient.kpClientFName.trim(),
@@ -160,7 +165,10 @@ const ClientTable = () => {
                 registeredByUsername: selectedClient.registeredByUsername
             },
             {
-                withCredentials: true // Ensure session cookies are sent
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
             }
         );
 
@@ -169,21 +177,16 @@ const ClientTable = () => {
         setUpdateMessage({ type: 'success', message: 'Client updated successfully' });
     } catch (error) {
         console.error('Update error:', error);
-        setUpdateMessage({ 
-            type: 'error', 
-            message: error.response?.data || error.message || 'Failed to update client' 
-        });
+        const errorMessage = error.response?.status === 403 
+            ? 'Authentication failed. Please log in again.'
+            : error.response?.data?.message || error.message || 'Failed to update client';
+        setUpdateMessage({ type: 'error', message: errorMessage });
     } finally {
         setUpdating(false);
     }
-  };
+};
 
-  const handleDeleteConfirm = (client) => {
-    setSelectedClient(client);
-    setDeleteDialog(true);
-  };
-
-  const handleDeleteSubmit = async () => {
+const handleDeleteSubmit = async () => {
     if (!selectedClient?.kpClientId) {
         setUpdateMessage({ type: 'error', message: 'Invalid client ID' });
         return;
@@ -191,24 +194,39 @@ const ClientTable = () => {
 
     setDeleting(true);
     try {
-      await axios.delete(
-        `/api/clients/deleteClient/${selectedClient.kpClientId}`,
-        { withCredentials: true }
-    );
-    
+        const token = localStorage.getItem("token");
+        if (!token) {
+            throw new Error('No authentication token found');
+        }
+
+        await axios.delete(
+            `${baseUrl}/api/clients/deleteClient/${selectedClient.kpClientId}`,
+            {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            }
+        );
+
         setDeleteDialog(false);
         await fetchData(); // Refresh the table
         setUpdateMessage({ type: 'success', message: 'Client deleted successfully' });
     } catch (error) {
         console.error('Delete error:', error);
-        setUpdateMessage({ 
-            type: 'error', 
-            message: error.response?.data || error.message || 'Failed to delete client' 
-        });
+        const errorMessage = error.response?.status === 403 
+            ? 'Authentication failed. Please log in again.'
+            : error.response?.data?.message || error.message || 'Failed to delete client';
+        setUpdateMessage({ type: 'error', message: errorMessage });
     } finally {
         setDeleting(false);
     }
-  };
+};
+
+const handleDeleteConfirm = (client) => {
+    setSelectedClient(client);
+    setDeleteDialog(true);
+};
 
   const handleCategoryChange = (event) => {
     setSelectedCategory(event.target.value);
