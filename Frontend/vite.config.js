@@ -12,7 +12,12 @@ export default defineConfig({
     }
   },
   server: {
+    host: '0.0.0.0',
     port: 3000,        // This sets your dev server to run on port 3000
-    open: true         // This will automatically open your browser when the server starts
+    open: true,         // This will automatically open your browser when the server starts
+    watch:{
+      usePolling: true // This is needed for WSL2 users
+    },
+    strictPort:true,
   }
 })
