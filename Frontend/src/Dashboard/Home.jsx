@@ -35,6 +35,8 @@ import { useAuth } from "../context/AuthContext";
 import api from "../services/api";
 import { generateSerialNumber, getCategories } from "../services/api";
 
+
+const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 export function Home() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
@@ -172,7 +174,7 @@ export function Home() {
 
       console.log("Submitting client data:", clientData);
 
-      const response = await api.post("/api/clients/register", clientData);
+      const response = await api.post(`${baseUrl}/api/clients/register", clientData`);
 
       if (response.status === 201) {
         localStorage.removeItem("serialNumber");

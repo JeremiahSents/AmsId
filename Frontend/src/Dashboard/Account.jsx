@@ -19,6 +19,8 @@ import {
 import axios from "axios";
 import { useAuth } from "../context/AuthContext";
 
+
+const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 export function Account() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
@@ -55,7 +57,7 @@ export function Account() {
 
       try {
         const response = await axios.get(
-          `http://localhost:8080/api/users/getUser/${user.id}`,
+          `${baseUrl}/api/users/getUser/${user.id}`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -153,7 +155,7 @@ export function Account() {
       };
 
       await axios.put(
-        `http://localhost:8080/api/users/updateUser/${user.id}`,
+        `${baseUrl}/api/users/updateUser/${user.id}`,
         updateData,
         {
 

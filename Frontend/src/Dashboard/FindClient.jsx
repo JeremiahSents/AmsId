@@ -30,13 +30,13 @@ import {
   CardContent,
   Divider,
 } from "@mui/material";
-import axios from "axios";
+
 import api from "../services/api";
 import { Edit as EditIcon, Delete as DeleteIcon, Search as SearchIcon} from "@mui/icons-material";
 import { getCategories } from "../services/api";
 import PropTypes from "prop-types";
 
-
+const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 export function FindClient() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -72,7 +72,7 @@ export function FindClient() {
     setClient(null);
   
     try {
-      const response = await api.get(`/api/clients/findClient/serial/${serialNumber}`);
+      const response = await api.get(`${baseUrl}/api/clients/findClient/serial/${serialNumber}`);
       if (response.data) {
       const foundClient = response.data;
       const category = categories.find(c => c.id === foundClient.categoryId);
@@ -108,7 +108,7 @@ export function FindClient() {
     setUpdating(true);
     try {
       const response = await api.put(
-        `/api/clients/updateClient/${client.kpClientId}`,
+        `${baseUrl}/api/clients/updateClient/${client.kpClientId}`,
         {
           ...client,
           kpClientFName: client.kpClientFName.trim(),
@@ -138,7 +138,7 @@ export function FindClient() {
 
     setDeleting(true);
     try {
-      await api.delete(`/api/clients/deleteClient/${client.kpClientId}`);
+      await api.delete(`${baseUrl}/api/clients/deleteClient/${client.kpClientId}`);
       setDeleteDialog(false);
       setClient(null);
       setError("");

@@ -1,11 +1,12 @@
 /* eslint-disable react/no-unescaped-entities */
 /* eslint-disable no-unused-vars */
-import { Button, TextField, Stack, Box, Typography, Container } from "@mui/material";
+import { Button, TextField, Stack, Box, Typography, Container, Alert, AlertTitle } from "@mui/material";
 import { Link, useNavigate } from "react-router-dom";
 import logo from '../assets/amsLogo.png';
 import React, { useState } from 'react';
 import { login as loginApi } from "../services/api.js";
 import { useAuth } from '../context/AuthContext';
+import { API_URL } from "../services/api";
 
 export function Login() {
   const [formData, setFormData] = useState({
@@ -15,6 +16,7 @@ export function Login() {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [attempts, setAttempts] = useState(0);
   const navigate = useNavigate();
   const { login } = useAuth();
 
@@ -30,15 +32,24 @@ export function Login() {
     e.preventDefault();
     setLoading(true);
     setError('');
-    try {
-      const response = await loginApi(formData);
-      const userData = response.data;
+    console.log("API Base URL:", API_URL);
 
-      console.log("Login API response data:", userData);
+    try {
+      const userData = await loginApi(formData);
       
-      localStorage.setItem('accessToken', userData.accessToken);
-      localStorage.setItem('refreshToken', userData.refreshToken); 
-      localStorage.setItem('username', userData.amsUsername);
+      if (!userData) {
+        throw new Error("No data received from server");
+      }
+
+      if (userData.accessToken) {
+        localStorage.setItem('accessToken', userData.accessToken);
+      }
+      if (userData.refreshToken) {
+        localStorage.setItem('refreshToken', userData.refreshToken);
+      }
+      if (userData.amsUsername) {
+        localStorage.setItem('username', userData.amsUsername);
+      }
       
       login({ 
         username: userData.amsUsername,
@@ -47,13 +58,52 @@ export function Login() {
         id: userData.id
       });
       
+      setAttempts(0);
       navigate("/home");
     } catch (error) {
-      console.error(error);
-      setError(error.message || "Invalid credentials. Please try again.");
+      console.error("Login error:", error);
+      setAttempts(prev => prev + 1);
+      
+      if (error.message.includes("Invalid username")) {
+        setError("Username not found. Please check your username or sign up for a new account.");
+      } else if (error.message.includes("Invalid password")) {
+        setError("Incorrect password. Please try again or reset your password.");
+      } else {
+        setError("Login failed. Please try again.");
+      }
     } finally {
       setLoading(false);
     }
+  };
+
+  const renderErrorAlert = () => {
+    if (!error) return null;
+    
+    return (
+      <Alert 
+        severity="error" 
+        sx={{ mb: 2 }}
+        action={
+          attempts >= 3 && (
+            <Link 
+              to="/forgot-password" 
+              style={{ textDecoration: 'none' }}
+            >
+              <Button color="error" size="small">
+                Reset Password
+              </Button>
+            </Link>
+          )
+        }
+      >
+        {error}
+        {attempts >= 3 && (
+          <Typography variant="body3" sx={{ mt: 1, fontSize: '0.875rem' }}>
+            Having trouble? You can reset your password
+          </Typography>
+        )}
+      </Alert>
+    );
   };
 
   return (
@@ -62,12 +112,15 @@ export function Login() {
         <img src={logo} alt="AMS Logo" style={{ maxWidth: "100%", height: "auto", marginBottom: "20px" }} />
         <form onSubmit={handleSubmit}>
           <Stack spacing={2}>
+            {renderErrorAlert()}
+            
             <TextField
               label="Username"
               name="amsUsername"
               value={formData.amsUsername}
               onChange={handleChange}
               fullWidth
+              error={!!error && error.includes("username")}
             />
 
             <TextField
@@ -77,9 +130,8 @@ export function Login() {
               value={formData.amsUserPassword}
               onChange={handleChange}
               fullWidth
+              error={!!error && error.includes("password")}
             />
-
-            {error && <Typography color="error">{error}</Typography>}
 
             <Button 
               type="submit"
@@ -94,6 +146,17 @@ export function Login() {
               <Typography>Don't have an account?</Typography>
               <Link to="/signup" style={{ color: "primary" }} underline="hover">Register</Link>
             </Stack>
+            
+            {attempts >= 3 && (
+              <Stack direction="row" spacing={1} justifyContent="center">
+                <Link 
+                  to="/contact-support" 
+                  style={{ color: "primary", textDecoration: 'none' }}
+                >
+                  Need help? Contact Support
+                </Link>
+              </Stack>
+            )}
           </Stack>
         </form>
       </Box>
