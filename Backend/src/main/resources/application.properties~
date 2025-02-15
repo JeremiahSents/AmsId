@@ -1,7 +1,7 @@
 # Add to application.properties
 logging.level.org.springframework.context.annotation=DEBUG
 
-spring.datasource.url=jdbc:postgresql://amsdb.postgres.database.azure.com:5432/AmsProject?sslmode=require
+spring.datasource.url=jdbc:postgresql://amsdb.postgres.database.azure.com:5432/AmsProject
 spring.datasource.username=postgres
 spring.datasource.password=oremsAdrian123
 FRONTEND_URL=http://localhost:3000
