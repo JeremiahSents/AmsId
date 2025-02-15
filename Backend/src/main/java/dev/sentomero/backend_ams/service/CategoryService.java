@@ -12,8 +12,11 @@ import java.util.List;
 @Component
 public class CategoryService implements CommandLineRunner {
 
-    @Autowired
-    private CategoryRepository categoryRepository;
+    private final CategoryRepository categoryRepository;
+
+    public CategoryService(CategoryRepository categoryRepository) {
+        this.categoryRepository = categoryRepository;
+    }
 
 
     @Override

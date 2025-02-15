@@ -2,39 +2,53 @@ version: '3.8'
 
 services:
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
     ports:
       - "3000:3000"
-    depends_on:
-      - backend
-    environment:
-      - REACT_APP_API_URL=http://backend:8080
     volumes:
       - ./frontend:/app
       - /app/node_modules
+    environment:
+      - VITE_HOST=0.0.0.0
+      - VITE_BACKEND_URL=http://localhost:8080
+    networks:
+      - app-network
 
   backend:
-    build: ./Backend
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
     ports:
       - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+      - DATASOURCE_URL=jdbc:postgresql://35.223.83.33:5432/AmsProject
+      - DATASOURCE_USERNAME=postgres
+      - DATASOURCE_PASSWORD=@rem$Adrian123
+      - FRONTEND_URL=http://localhost:3000
     depends_on:
       - db
-    environment:
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/AmsProject
-      - SPRING_DATASOURCE_USERNAME=postgres
-      - SPRING_DATASOURCE_PASSWORD=@rem$Adrian123
-      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+    networks:
+      - app-network
 
   db:
-    image: postgres:15
-    ports:
-      - "5432:5432"
+    image: postgres:14-alpine
     environment:
       - POSTGRES_DB=AmsProject
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=@rem$Adrian123
+    ports:
+      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - app-network
 
 volumes:
   postgres_data:
+
+networks:
+  app-network:
+    driver: bridge

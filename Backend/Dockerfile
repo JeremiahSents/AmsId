@@ -1,20 +1,13 @@
-# Stage 1: Build the application
-FROM maven:3.9-eclipse-temurin-21 AS build
-WORKDIR /app
-
-# Copy the POM file
-COPY pom.xml .
-
-# Copy the source code
-COPY src ./src
-
-# Package the application
-RUN mvn clean package -DskipTests --no-transfer-progress
-
-# Stage 2: Create the final runtime image
 FROM eclipse-temurin:21-jre-jammy
 WORKDIR /app
 
-COPY --from=build /app/target/amsIdea-*.jar /app/app.jar
-EXPOSE 8080
-CMD ["java", "-jar", "app.jar"]
+# Copy pre-built JAR file
+COPY target/amsIdea-0.0.1-SNAPSHOT.jar /app/amsIdea.jar
+
+# Set environment variables
+ENV PORT=8080
+ENV SPRING_PROFILES_ACTIVE=prod
+ENV GOOGLE_CLOUD_PROJECT=amsidea
+
+# Run the application
+CMD ["java", "-jar", "amsIdea.jar"]

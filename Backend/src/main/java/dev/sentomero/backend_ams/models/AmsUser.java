@@ -19,21 +19,21 @@ public class AmsUser {
     private int id;  // lowercase
 
     @Column(name = "Ams_Fname")
-    private String amsUserFname;  // lowercase
+    private String amsUserFname;
 
     @Column(name = "Ams_Lname")
-    private String amsUserLname;  // lowercase
+    private String amsUserLname;
 
     @Column(name = "Ams_Username", nullable = false, unique = true)
-    private String amsUsername;  // lowercase
+    private String amsUsername;
 
 
     @Column(name = "Ams_Password", unique = true, nullable = false)
-    private String amsUserPassword;  // lowercase
+    private String amsUserPassword;
 
     @Column(name = "Time_login")
-    private LocalDateTime timestamp;  // lowercase
+    private LocalDateTime timestamp;
 
     @OneToMany(mappedBy = "registeredBy", cascade = CascadeType.ALL)
-    private List<KpClient> registeredClients;  // Remove redundant @Column
+    private List<KpClient> registeredClients;
 }

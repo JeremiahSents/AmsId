@@ -5,7 +5,6 @@ import dev.sentomero.backend_ams.models.AmsUser;
 import dev.sentomero.backend_ams.repository.AmsUserRepository;
 import dev.sentomero.backend_ams.service.AmsUserService;
 
-import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -30,32 +29,9 @@ public class AmsUserServiceImpl implements AmsUserService {
     }
 
 
-//    @Override
-//    public AuthenticationResponse authenticateUser(String username, String password) {
-//        try {
-//            AmsUser user = amsUserRepository.findByAmsUsername(username)
-//                    .orElseThrow(() -> new RuntimeException("User not found"));
-//
-//            if (!passwordEncoder.matches(password, user.getAmsUserPassword())) {
-//                throw new RuntimeException("Invalid credentials");
-//            }
-//
-//            AmsUserDto userDto = convertToDto(user);
-//            return new AuthenticationResponse(userDto);
-//        } catch (Exception e) {
-//            throw new RuntimeException("Authentication failed: " + e.getMessage());
-//        }
-//    }
-    @Override
-    public AmsUserDto getUserByUsername(String username) {
-        AmsUser user = amsUserRepository.findByAmsUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found"));
-        return convertToDto(user);
-    }
-
     @Override
     @Transactional
-    public AmsUserDto savedUser(AmsUserDto userDto) {
+    public AmsUserDto saveUser(AmsUserDto userDto) {
         // Check if username exists
         if (amsUserRepository.findByAmsUsername(userDto.getAmsUsername()).isPresent()) {
             throw new RuntimeException("Username already exists");
@@ -73,12 +49,6 @@ public class AmsUserServiceImpl implements AmsUserService {
         AmsUser savedUser = amsUserRepository.save(newUser);
     
         return convertToDto(savedUser);
-    }
-
-    @Override
-    public void logout(HttpSession session) {
-
-        session.invalidate();
     }
 
     @Override
@@ -145,30 +115,8 @@ public class AmsUserServiceImpl implements AmsUserService {
 
     @Override
     public AmsUser findByUsername(String amsUsername) {
-        AmsUser user = amsUserRepository.findByAmsUsername(amsUsername)
+        return amsUserRepository.findByAmsUsername(amsUsername)
                 .orElseThrow(() -> new RuntimeException("User not found"));
-        return user;
     }
 
-    // @Override
-    // public AmsUserDto authenticateUser(String username, String password) {
-    //     AmsUser user = amsUserRepository.findByAmsUsername(username)
-    //             .orElseThrow(() -> new RuntimeException("User not found"));
-
-    //     if (!passwordEncoder.matches(password, user.getAmsUserPassword())) {  // Secure password comparison
-    //         throw new RuntimeException("Invalid credentials");
-    //     }
-
-    //     JwtUtil jwtUtil = new JwtUtil();
-    //     String token = jwtUtil.generateToken(user.getAmsUsername());
-
-    //     AmsUserDto userDto = new AmsUserDto();
-    //     userDto.setId(user.getId());
-    //     userDto.setAmsUserFname(user.getAmsUserFname());
-    //     userDto.setAmsUserLname(user.getAmsUserLname());
-    //     userDto.setAmsUsername(user.getAmsUsername());
-    //     userDto.setToken(token);
-
-    //     return userDto;
-    // }
 }

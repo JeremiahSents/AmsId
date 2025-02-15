@@ -8,7 +8,6 @@ import dev.sentomero.backend_ams.repository.AmsUserRepository;
 import dev.sentomero.backend_ams.repository.CategoryRepository;
 import dev.sentomero.backend_ams.repository.KpClientRepository;
 import dev.sentomero.backend_ams.service.KpClientService;
-import dev.sentomero.backend_ams.service.SerialNumberService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,17 +22,14 @@ public class KpClientServiceImpl implements KpClientService {
     private final KpClientRepository kpClientRepository;
     private final AmsUserRepository amsUserRepository;
     private final CategoryRepository categoryRepository;
-    private final SerialNumberService serialNumberService;
 
     @Autowired
     public KpClientServiceImpl(KpClientRepository kpClientRepository,
                                AmsUserRepository amsUserRepository,
-                               CategoryRepository categoryRepository,
-                               SerialNumberService serialNumberService) {
+                               CategoryRepository categoryRepository) {
         this.kpClientRepository = kpClientRepository;
         this.amsUserRepository = amsUserRepository;
         this.categoryRepository = categoryRepository;
-        this.serialNumberService = serialNumberService;
     }
 
     private KpClientDto convertToDto(KpClient client) {
@@ -97,7 +93,7 @@ public class KpClientServiceImpl implements KpClientService {
         } else {
             // No category selected and no new category name provided when 'Other' is intended
             // This case should ideally be prevented by frontend validation, but handle it defensively:
-            throw new RuntimeException("Category is required."); // Or handle it as per your business logic (e.g., set a default category, or allow null if your business logic permits it and you remove the database NOT NULL constraint).
+            throw new RuntimeException("Category is required.");
         }
         client.setTimeAssigned(LocalDateTime.now());
         

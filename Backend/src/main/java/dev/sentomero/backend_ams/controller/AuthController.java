@@ -5,7 +5,8 @@ import dev.sentomero.backend_ams.dto.LoginRequest;
 import dev.sentomero.backend_ams.models.AmsUser;
 import dev.sentomero.backend_ams.security.JwtTokenService;
 import dev.sentomero.backend_ams.service.AmsUserService;
-import org.springframework.beans.factory.annotation.Autowired;
+
+import lombok.AllArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -24,16 +25,14 @@ import java.util.HashMap;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/users")
+@RequestMapping("/Ams/users")
+@AllArgsConstructor
 public class AuthController {
 
-    @Autowired
     private AuthenticationManager authenticationManager;
 
-    @Autowired
-    private JwtTokenService  jwtTokenService;
+    private JwtTokenService jwtTokenService;
 
-    @Autowired
     private AmsUserService amsUserService;
 
     @PostMapping("/login")
@@ -54,25 +53,10 @@ public class AuthController {
             UserDetails userDetails = (UserDetails) authentication.getPrincipal();
             AmsUser authenticatedAmsUser = amsUserService.findByUsername(userDetails.getUsername());
 
-
-          AmsUserDto amsUserDto = convertToDto(authenticatedAmsUser);
-
-
+            AmsUserDto amsUserDto = convertToDto(authenticatedAmsUser);
 
             String accessToken = jwtTokenService.generateAccessToken(userDetails);
             String refreshToken = jwtTokenService.generateRefreshToken(userDetails);
-
-//            AmsUser amsUser = amsUserService.findByUsername(loginRequest.getAmsUsername());
-//  if (amsUser ==null){
-//      return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("User not found with username : " + loginRequest.getAmsUsername());
-//  }
-
-//
-//            AmsUserDto amsUserDto = new AmsUserDto();
-//  amsUserDto.setId(amsUserDto.getId());
-//            amsUserDto.setAmsUserFname(amsUserDto.getAmsUserFname());
-//            amsUserDto.setAmsUserLname(amsUserDto.getAmsUserLname());
-//            amsUserDto.setAmsUsername(amsUserDto.getAmsUsername());
 
             System.out.println("Generated Access Token: " + accessToken);
             System.out.println("Generated Refresh Token: " + refreshToken);
@@ -91,14 +75,11 @@ public class AuthController {
                     .header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken)
                     .body(responseBody);
 
-//                    .body(Map.of(
-//                            "accessToken", accessToken,
-//                            "refreshToken", refreshToken
-//                    ));
         } catch (BadCredentialsException e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid credentials");
         }
     }
+
     private AmsUserDto convertToDto(AmsUser amsUser) {
         AmsUserDto dto = new AmsUserDto();
         dto.setId(amsUser.getId());
