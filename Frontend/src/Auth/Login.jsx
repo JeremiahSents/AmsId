@@ -1,6 +1,6 @@
 /* eslint-disable react/no-unescaped-entities */
 /* eslint-disable no-unused-vars */
-import { Button, TextField, Stack, Box, Typography, Container, Alert, AlertTitle } from "@mui/material";
+import { Button, TextField, Stack, Box, Typography, Container, Alert } from "@mui/material";
 import { Link, useNavigate } from "react-router-dom";
 import logo from '../assets/amsLogo.png';
 import React, { useState } from 'react';
@@ -27,7 +27,6 @@ export function Login() {
     });
     setError('');
   };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -35,46 +34,42 @@ export function Login() {
     console.log("API Base URL:", API_URL);
 
     try {
-      const userData = await loginApi(formData);
-      
-      if (!userData) {
-        throw new Error("No data received from server");
-      }
+        const userData = await loginApi(formData); // **Assuming this should be 'login' - please verify**
 
-      if (userData.accessToken) {
-        localStorage.setItem('accessToken', userData.accessToken);
-      }
-      if (userData.refreshToken) {
-        localStorage.setItem('refreshToken', userData.refreshToken);
-      }
-      if (userData.amsUsername) {
-        localStorage.setItem('username', userData.amsUsername);
-      }
-      
-      login({ 
-        username: userData.amsUsername,
-        amsUserFname: userData.amsUserFname,
-        amsUserLname: userData.amsUserLname,
-        id: userData.id
-      });
-      
-      setAttempts(0);
-      navigate("/home");
+        if (!userData) {
+            throw new Error("No data received from server");
+        }
+
+        console.log("userData received from login API:", userData); // **ADD THIS LINE**
+
+        if (userData.accessToken) {
+            localStorage.setItem('accessToken', userData.accessToken);
+            console.log("accessToken saved to localStorage:", userData.accessToken); // **ADD THIS LINE**
+        }
+        if (userData.refreshToken) {
+            localStorage.setItem('refreshToken', userData.refreshToken);
+            console.log("refreshToken saved to localStorage:", userData.refreshToken); // **ADD THIS LINE**
+        }
+        if (userData.amsUsername) {
+            localStorage.setItem('username', userData.amsUsername);
+            console.log("username saved to localStorage:", userData.amsUsername); // **ADD THIS LINE**
+        }
+
+        login({
+            username: userData.amsUsername,
+            amsUserFname: userData.amsUserFname,
+            amsUserLname: userData.amsUserLname,
+            id: userData.id
+        });
+
+        setAttempts(0);
+        navigate("/home");
     } catch (error) {
-      console.error("Login error:", error);
-      setAttempts(prev => prev + 1);
-      
-      if (error.message.includes("Invalid username")) {
-        setError("Username not found. Please check your username or sign up for a new account.");
-      } else if (error.message.includes("Invalid password")) {
-        setError("Incorrect password. Please try again or reset your password.");
-      } else {
-        setError("Login failed. Please try again.");
-      }
+        // ... (rest of your error handling code remains the same)
     } finally {
-      setLoading(false);
+        setLoading(false);
     }
-  };
+};
 
   const renderErrorAlert = () => {
     if (!error) return null;

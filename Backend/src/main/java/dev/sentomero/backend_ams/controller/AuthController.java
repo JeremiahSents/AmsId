@@ -25,7 +25,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/Ams/users")
+@RequestMapping("/users")
 @AllArgsConstructor
 public class AuthController {
 

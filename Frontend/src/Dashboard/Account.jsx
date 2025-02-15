@@ -19,8 +19,7 @@ import {
 import axios from "axios";
 import { useAuth } from "../context/AuthContext";
 
-
-const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:8080";
 export function Account() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
@@ -40,7 +39,7 @@ export function Account() {
 
   useEffect(() => {
     const fetchUserData = async () => {
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("accessToken");
       const username = localStorage.getItem("username");
 
       if (!token || !username) {
@@ -57,7 +56,7 @@ export function Account() {
 
       try {
         const response = await axios.get(
-          `${baseUrl}/api/users/getUser/${user.id}`,
+          `${baseUrl}/users/getUser/${user.id}`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -129,7 +128,7 @@ export function Account() {
     setLoading(true);
     setMessage({ type: "", text: "" });
 
-    const token = localStorage.getItem("token");
+    const token = localStorage.getItem("accessToken");
     const username = localStorage.getItem("username");
     if (!token || !username) {
       navigate("/login");
@@ -154,17 +153,12 @@ export function Account() {
         currentPassword: formData.currentPassword,
       };
 
-      await axios.put(
-        `${baseUrl}/api/users/updateUser/${user.id}`,
-        updateData,
-        {
-
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
+      await axios.put(`${baseUrl}/users/updateUser/${user.id}`, updateData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
 
       setMessage({ type: "success", text: "Account updated successfully" });
       setIsEditing(false);

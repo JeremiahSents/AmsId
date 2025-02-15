@@ -60,15 +60,15 @@ const ClientTable = () => {
   const [expandedCard, setExpandedCard] = useState(null);
 
   const fetchData = async () => {
-    const token = localStorage.getItem("token");
+    const token = localStorage.getItem("accessToken");
     console.log("Token Retrieved from Storage:", token); 
   
     setLoading(true);
     try {
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("accessToken");
   
       const [clientsResponse, categoriesResponse] = await Promise.all([
-        axios.get(`${baseUrl}/api/clients/all`, {
+        axios.get(`${baseUrl}/clients/all`, {
           headers: {
             Authorization: `Bearer ${token}`,
           }
@@ -147,13 +147,13 @@ const ClientTable = () => {
 
     setUpdating(true);
     try {
-        const token = localStorage.getItem("token");
+        const token = localStorage.getItem("accessToken");
         if (!token) {
             throw new Error('No authentication token found');
         }
 
         await axios.put(
-            `${baseUrl}/api/clients/updateClient/${selectedClient.kpClientId}`,
+            `${baseUrl}/clients/updateClient/${selectedClient.kpClientId}`,
             {
                 kpClientId: selectedClient.kpClientId,
                 kpClientFName: selectedClient.kpClientFName.trim(),
@@ -194,13 +194,13 @@ const handleDeleteSubmit = async () => {
 
     setDeleting(true);
     try {
-        const token = localStorage.getItem("token");
+        const token = localStorage.getItem("accessToken");
         if (!token) {
             throw new Error('No authentication token found');
         }
 
         await axios.delete(
-            `${baseUrl}/api/clients/deleteClient/${selectedClient.kpClientId}`,
+            `${baseUrl}/clients/deleteClient/${selectedClient.kpClientId}`,
             {
                 headers: {
                     'Authorization': `Bearer ${token}`,

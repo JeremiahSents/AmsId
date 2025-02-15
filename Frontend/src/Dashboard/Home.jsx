@@ -62,7 +62,7 @@ export function Home() {
 
   useEffect(() => {
     // Check authentication first
-    const token = localStorage.getItem("token");
+    const token = localStorage.getItem("accessToken");
     if (!token || !user) {
       console.log("No token found or user not authenticated");
       navigate("/login");
@@ -151,64 +151,70 @@ export function Home() {
   const handleSubmit = async () => {
     const errors = validateForm();
     if (errors.length > 0) {
-      setError(errors.join(", "));
-      return;
+        setError(errors.join(", "));
+        return;
     }
 
     setLoading(true);
+    setError(""); // Clear previous errors
+    setSuccessMessage(""); // Clear previous success message
     try {
-      const clientData = {
-        kpClientFName: formData.firstName.trim(),
-        kpClientLName: formData.lastName.trim(),
-        categoryId:
-          formData.categoryId === OTHER_CATEGORY_VALUE
-            ? null
-            : parseInt(formData.categoryId, 10),
-        newCategoryName:
-          formData.categoryId === OTHER_CATEGORY_VALUE
-            ? formData.newCategoryName.trim()
-            : null,
-        registeredBy: user.username,
-        kpClientSerialNumber: formData.serialNumber,
-      };
+        const clientData = {
+            kpClientFName: formData.firstName.trim(),
+            kpClientLName: formData.lastName.trim(),
+            categoryId:
+                formData.categoryId === OTHER_CATEGORY_VALUE
+                    ? null
+                    : parseInt(formData.categoryId, 10),
+            newCategoryName:
+                formData.categoryId === OTHER_CATEGORY_VALUE
+                    ? formData.newCategoryName.trim()
+                    : null,
+            registeredBy: user.username,
+            kpClientSerialNumber: formData.serialNumber,
+        };
 
-      console.log("Submitting client data:", clientData);
+        console.log("Submitting client data:", clientData);
+        console.log("Registration Request URL:", `${baseUrl}/clients/register`); // Log URL
+        console.log("Registration Request Headers (before api.post):", api.defaults.headers.common); // Log headers
 
-      const response = await api.post(`${baseUrl}/api/clients/register", clientData`);
 
-      if (response.status === 201) {
-        localStorage.removeItem("serialNumber");
-        const newSerialNumber = await generateSerialNumber();
-        const newSerialNumberString = newSerialNumber.toString();
-        localStorage.setItem("serialNumber", newSerialNumberString);
+        const response = await api.post(`${baseUrl}/clients/register`, clientData); // **CORRECTED LINE - URL and data are separate arguments**
 
-        setFormData({
-          serialNumber: newSerialNumberString,
-          firstName: "",
-          lastName: "",
-          categoryId: "",
-          newCategoryName: "",
-        });
 
-        setError("");
-        setSuccessMessage("Client registered successfully!");
+        if (response.status === 201) {
+            localStorage.removeItem("serialNumber");
+            const newSerialNumber = await generateSerialNumber();
+            const newSerialNumberString = newSerialNumber.toString();
+            localStorage.setItem("serialNumber", newSerialNumberString);
 
-        setTimeout(() => {
-          setSuccessMessage("");
-        }, 3000);
-      }
+            setFormData({
+                serialNumber: newSerialNumberString,
+                firstName: "",
+                lastName: "",
+                categoryId: "",
+                newCategoryName: "",
+            });
+
+            setError("");
+            setSuccessMessage("Client registered successfully!");
+
+            setTimeout(() => {
+                setSuccessMessage("");
+            }, 3000);
+        }
     } catch (error) {
-      console.error("Registration error:", error);
-      const errorMessage =
-        error.response?.data?.message ||
-        error.response?.data ||
-        error.message ||
-        "Failed to register client";
-      setError(errorMessage);
+        console.error("Registration error:", error);
+        const errorMessage =
+            error.response?.data?.message ||
+            error.response?.data ||
+            error.message ||
+            "Failed to register client";
+        setError(errorMessage);
     } finally {
-      setLoading(false);
+        setLoading(false);
     }
-  };
+};
 
   const handleLogout = () => {
     logout();

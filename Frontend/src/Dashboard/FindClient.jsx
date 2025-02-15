@@ -72,7 +72,7 @@ export function FindClient() {
     setClient(null);
   
     try {
-      const response = await api.get(`${baseUrl}/api/clients/findClient/serial/${serialNumber}`);
+      const response = await api.get(`${baseUrl}/clients/findClient/serial/${serialNumber}`);
       if (response.data) {
       const foundClient = response.data;
       const category = categories.find(c => c.id === foundClient.categoryId);
@@ -108,7 +108,7 @@ export function FindClient() {
     setUpdating(true);
     try {
       const response = await api.put(
-        `${baseUrl}/api/clients/updateClient/${client.kpClientId}`,
+        `${baseUrl}/clients/updateClient/${client.kpClientId}`,
         {
           ...client,
           kpClientFName: client.kpClientFName.trim(),
@@ -138,7 +138,7 @@ export function FindClient() {
 
     setDeleting(true);
     try {
-      await api.delete(`${baseUrl}/api/clients/deleteClient/${client.kpClientId}`);
+      await api.delete(`${baseUrl}/clients/deleteClient/${client.kpClientId}`);
       setDeleteDialog(false);
       setClient(null);
       setError("");

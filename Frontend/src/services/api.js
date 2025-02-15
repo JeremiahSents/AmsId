@@ -15,12 +15,16 @@ const api = axios.create({
 // Request interceptor to add token to headers
 api.interceptors.request.use(
     (config) => {
+        // console.log("Request Interceptor - Config:", config); // **ADD THIS LOG**
         const token = localStorage.getItem("accessToken");
         if (token) {
             config.headers = {
                 ...config.headers,
                 Authorization: `Bearer ${token}`
             };
+            console.log("Request Interceptor - Token Added:", token); // **ADD THIS LOG**
+        } else {
+            console.log("Request Interceptor - No Token Found in localStorage"); // **ADD THIS LOG**
         }
         return config;
     },
@@ -46,7 +50,7 @@ api.interceptors.response.use(
 
 export const signup = async (userData) => {
     try {
-        const response = await api.post("/api/users/createUser", userData);
+        const response = await api.post("/users/createUser", userData);
         return response.data;
     } catch (error) {
         throw new Error(error.response?.data?.message || "Signup failed");
@@ -55,7 +59,7 @@ export const signup = async (userData) => {
 
 export const login = async (credentials) => {
     try {
-        const response = await api.post("/api/users/login", credentials);
+        const response = await api.post("/users/login", credentials);
         const userData = response.data;
 
         if (!userData) {
@@ -103,7 +107,7 @@ export const login = async (credentials) => {
 
 export const generateSerialNumber = async () => {
     try {
-        const response = await api.get("/api/serial/generate");
+        const response = await api.get("/serial/generate");
         return response.data;
     } catch (error) {
         throw new Error(error.response?.data?.message || "Failed to generate serial number");
@@ -112,7 +116,7 @@ export const generateSerialNumber = async () => {
 
 export const getCategories = async () => {
     try {
-        const response = await api.get("/api/categories");
+        const response = await api.get("/categories");
         return response.data;
     } catch (error) {
         throw new Error(error.response?.data?.message || "Failed to fetch categories");
