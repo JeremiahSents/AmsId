@@ -20,4 +20,7 @@ public interface AmsUserService {
     void deleteUser(int id);
 
     AmsUser findByUsername(String amsUsername);
+
+    void save(AmsUser amsUser);
+
 }

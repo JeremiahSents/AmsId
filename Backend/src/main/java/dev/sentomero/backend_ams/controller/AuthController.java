@@ -53,6 +53,12 @@ public class AuthController {
             UserDetails userDetails = (UserDetails) authentication.getPrincipal();
             AmsUser authenticatedAmsUser = amsUserService.findByUsername(userDetails.getUsername());
 
+            // --- Add loginTime update logic here ---
+            authenticatedAmsUser.setTimestamp(java.time.LocalDateTime.now()); // Set loginTime to current timestamp
+            amsUserService.save(authenticatedAmsUser); // Save the updated user entity
+            // --- End loginTime update logic ---
+
+
             AmsUserDto amsUserDto = convertToDto(authenticatedAmsUser);
 
             String accessToken = jwtTokenService.generateAccessToken(userDetails);
@@ -79,7 +85,6 @@ public class AuthController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid credentials");
         }
     }
-
     private AmsUserDto convertToDto(AmsUser amsUser) {
         AmsUserDto dto = new AmsUserDto();
         dto.setId(amsUser.getId());

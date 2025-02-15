@@ -121,7 +121,7 @@ public class AmsUserServiceImpl implements AmsUserService {
 
     @Override
     public void save(AmsUser amsUser) {
-        amsUserRepository.save(amsUser);
+        
     }
 
 }
