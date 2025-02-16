@@ -124,4 +124,10 @@ public class AmsUserServiceImpl implements AmsUserService {
         amsUserRepository.save(amsUser);
     }
 
+    @Override
+    public AmsUser loadUserByUsername(String username) {
+        return amsUserRepository.findByAmsUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+    }
+
 }

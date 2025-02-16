@@ -23,4 +23,5 @@ public interface AmsUserService {
 
     void save(AmsUser amsUser);
 
+    AmsUser loadUserByUsername(String username);
 }

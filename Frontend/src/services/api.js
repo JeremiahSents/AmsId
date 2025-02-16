@@ -1,7 +1,6 @@
 import axios from "axios";
 
 export const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080";
-console.log("API Base URL:", API_URL);
 
 const api = axios.create({
     baseURL: API_URL,
@@ -15,39 +14,77 @@ const api = axios.create({
 // Request interceptor to add token to headers
 api.interceptors.request.use(
     (config) => {
-        // console.log("Request Interceptor - Config:", config); // **ADD THIS LOG**
         const token = localStorage.getItem("accessToken");
         if (token) {
-            config.headers = {
-                ...config.headers,
-                Authorization: `Bearer ${token}`
-            };
-            console.log("Request Interceptor - Token Added:", token); // **ADD THIS LOG**
-        } else {
-            console.log("Request Interceptor - No Token Found in localStorage"); // **ADD THIS LOG**
+            config.headers.Authorization = `Bearer ${token}`;
         }
         return config;
     },
     (error) => Promise.reject(error)
 );
 
-// Response interceptor remains the same...
+// Flag to prevent multiple refresh attempts at the same time
+let isRefreshing = false;
+let failedRequestsQueue = [];
+
+// Response interceptor to refresh token if expired
 api.interceptors.response.use(
     (response) => response,
-    (error) => {
-        if (error.response) {
-            console.error("Response error:", error.response.data);
-            throw new Error(error.response.data?.message || "An error occurred");
-        } else if (error.request) {
-            console.error("Network Error:", error.request);
-            throw new Error("Network Error");
-        } else {
-            console.error("Error Message:", error.message);
-            throw new Error("Something went wrong");
+    
+    async (error) => {
+        const originalRequest = error.config;
+
+        if (error.response?.status === 403 && !originalRequest._retry) {
+            originalRequest._retry = true;
+
+            if (isRefreshing) {
+                return new Promise((resolve, reject) => {
+                    failedRequestsQueue.push({ resolve, reject });
+                })
+                .then((token) => {
+                    originalRequest.headers.Authorization = `Bearer ${token}`;
+                    return axios(originalRequest);
+                })
+                .catch((err) => Promise.reject(err));
+            }
+
+            isRefreshing = true;
+
+            try {
+                const refreshToken = localStorage.getItem("refreshToken");
+
+                if (!refreshToken) {
+                    throw new Error("No refresh token available");
+                }
+
+                const response = await axios.post(`${API_URL}/api/auth/refresh-token`, { refreshToken });
+
+                const newAccessToken = response.data.accessToken;
+                localStorage.setItem("accessToken", newAccessToken);
+
+                // Retry failed requests with new token
+                failedRequestsQueue.forEach((req) => req.resolve(newAccessToken));
+                failedRequestsQueue = [];
+
+                originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+                return axios(originalRequest);
+            } catch (refreshError) {
+                failedRequestsQueue.forEach((req) => req.reject(refreshError));
+                failedRequestsQueue = [];
+
+                localStorage.clear();
+                window.location.href = "/login"; // Redirect to login page
+                return Promise.reject(refreshError);
+            } finally {
+                isRefreshing = false;
+            }
         }
+
+        return Promise.reject(error);
     }
 );
 
+// Signup function
 export const signup = async (userData) => {
     try {
         const response = await api.post("/users/createUser", userData);
@@ -57,6 +94,7 @@ export const signup = async (userData) => {
     }
 };
 
+// Login function
 export const login = async (credentials) => {
     try {
         const response = await api.post("/users/login", credentials);
@@ -68,7 +106,7 @@ export const login = async (credentials) => {
 
         const requiredFields = ['accessToken', 'refreshToken', 'amsUsername', 'amsUserFname', 'amsUserLname', 'id'];
         const missingFields = requiredFields.filter(field => !userData[field]);
-        
+
         if (missingFields.length > 0) {
             throw new Error(`Missing required fields: ${missingFields.join(', ')}`);
         }
@@ -81,15 +119,10 @@ export const login = async (credentials) => {
     } catch (error) {
         console.error("Login API Error:", error);
         
-        // Handle specific error cases
         if (error.response) {
             switch (error.response.status) {
                 case 401:
-                    if (error.response.data?.message?.includes('username')) {
-                        throw new Error("Invalid username");
-                    } else {
-                        throw new Error("Invalid password");
-                    }
+                    throw new Error("Invalid username or password");
                 case 404:
                     throw new Error("Invalid username");
                 case 429:
@@ -100,11 +133,12 @@ export const login = async (credentials) => {
                     throw new Error("Login failed. Please try again.");
             }
         }
-        
+
         throw new Error(error.message || "Login failed. Please try again.");
     }
 };
 
+// Generate Serial Number
 export const generateSerialNumber = async () => {
     try {
         const response = await api.get("/serial/generate");
@@ -114,6 +148,7 @@ export const generateSerialNumber = async () => {
     }
 };
 
+// Get Categories
 export const getCategories = async () => {
     try {
         const response = await api.get("/categories");

@@ -49,6 +49,7 @@ public class AuthController {
             // Set the authentication in the SecurityContextHolder
             SecurityContextHolder.getContext().setAuthentication(authentication);
 
+
             // Generate JWT tokens or session details
             UserDetails userDetails = (UserDetails) authentication.getPrincipal();
             AmsUser authenticatedAmsUser = amsUserService.findByUsername(userDetails.getUsername());
@@ -85,6 +86,31 @@ public class AuthController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid credentials");
         }
     }
+    @PostMapping("/refresh-token")
+    public ResponseEntity<?> refreshToken(@RequestBody Map<String, String> request) {
+        String refreshToken = request.get("refreshToken");
+
+        if (refreshToken == null || refreshToken.isEmpty()) {
+            return ResponseEntity.badRequest().body("Refresh token is required");
+        }
+
+        String username;
+        try {
+            username = jwtTokenService.extractUsername(refreshToken);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Invalid refresh token");
+        }
+
+        UserDetails userDetails = (UserDetails) amsUserService.loadUserByUsername(username);
+
+        if (!jwtTokenService.validateToken(refreshToken, userDetails)) {
+            return ResponseEntity.status(403).body("Refresh token expired or invalid");
+        }
+
+        String newAccessToken = jwtTokenService.generateAccessToken(userDetails);
+        return ResponseEntity.ok(Map.of("accessToken", newAccessToken));
+    }
+
     private AmsUserDto convertToDto(AmsUser amsUser) {
         AmsUserDto dto = new AmsUserDto();
         dto.setId(amsUser.getId());
