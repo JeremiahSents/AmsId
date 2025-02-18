@@ -81,6 +81,7 @@ public class SecurityConfig {
                                 "/users/createUser"
                         ).permitAll()
                         // Allow unrestricted access to Actuator endpoints
+                        .requestMatchers("/health").permitAll()
                         .requestMatchers("/actuator/**").permitAll()
                         .anyRequest().authenticated()
                 )

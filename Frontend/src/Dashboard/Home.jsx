@@ -36,7 +36,7 @@ import api from "../services/api";
 import { generateSerialNumber, getCategories } from "../services/api";
 
 
-const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+const baseUrl = import.meta.env.VITE_API_URL || 'http://18.191.168.91:8080';
 export function Home() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();

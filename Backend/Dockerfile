@@ -6,4 +6,4 @@ COPY target/amsIdea-0.0.1-SNAPSHOT.jar /app/amsIdea.jar
 
 ENV PORT=8080
 
-CMD ["java", "-jar", "-Dserver.port=$PORT", "amsIdea.jar"]
+CMD ["java", "-jar", "-Dserver.port=8080", "amsIdea.jar"]

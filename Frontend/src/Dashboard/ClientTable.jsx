@@ -43,7 +43,7 @@ const ClientTable = () => {
   const isSmall = useMediaQuery(theme.breakpoints.down('sm'));
 
   // Define baseUrl here
-  const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+  const baseUrl = import.meta.env.VITE_API_URL || 'http://18.191.168.91:8080';
 
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);

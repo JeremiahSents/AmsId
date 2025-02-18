@@ -19,7 +19,7 @@ import {
 import axios from "axios";
 import { useAuth } from "../context/AuthContext";
 
-const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:8080";
+const baseUrl = import.meta.env.VITE_API_URL || "http://18.191.168.91:8080";
 export function Account() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
