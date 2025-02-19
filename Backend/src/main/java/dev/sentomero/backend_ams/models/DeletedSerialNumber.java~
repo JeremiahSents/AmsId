@@ -1,0 +1,14 @@
+package dev.sentomero.backend_ams.models;
+
+import jakarta.persistence.*;
+
+
+import java.time.LocalDateTime;
+
+@Entity
+@Table(name = "deleted_serial_numbers")
+public class DeletedSerialNumber {
+    @Id
+    private Long serialNumber;
+    private LocalDateTime deletedAt;
+}

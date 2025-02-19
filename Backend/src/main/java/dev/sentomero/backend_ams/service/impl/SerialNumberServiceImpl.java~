@@ -1,5 +1,6 @@
 package dev.sentomero.backend_ams.service.impl;
 
+import dev.sentomero.backend_ams.repository.DeletedSerialNumberRepository;
 import dev.sentomero.backend_ams.service.SerialNumberService;
 import dev.sentomero.backend_ams.repository.KpClientRepository;
 import jakarta.persistence.EntityManager;
@@ -7,9 +8,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
-
-
 import java.util.Optional;
+import java.util.stream.Stream;
 
 @Service
 @Transactional
@@ -18,11 +18,15 @@ public class SerialNumberServiceImpl implements SerialNumberService {
     private static final long MAX_SERIAL = 99999L;
 
     private final KpClientRepository kpClientRepository;
+    private final DeletedSerialNumberRepository deletedSerialRepository;
     private final EntityManager entityManager;
 
     @Autowired
-    public SerialNumberServiceImpl(KpClientRepository kpClientRepository, EntityManager entityManager) {
+    public SerialNumberServiceImpl(KpClientRepository kpClientRepository,
+                                   DeletedSerialNumberRepository deletedSerialRepository,
+                                   EntityManager entityManager) {
         this.kpClientRepository = kpClientRepository;
+        this.deletedSerialRepository = deletedSerialRepository;
         this.entityManager = entityManager;
     }
 
@@ -30,45 +34,30 @@ public class SerialNumberServiceImpl implements SerialNumberService {
     @Transactional(isolation = Isolation.SERIALIZABLE)
     public Long generateSerialNumber() {
         // Create a pessimistic lock
-        entityManager.createNativeQuery("SELECT pg_advisory_xact_lock(123456)").executeUpdate();
+        entityManager.createNativeQuery("SELECT pg_advisory_xact_lock(123456)").getSingleResult();
 
-        // Get the highest serial number currently in use
-        Optional<Long> maxSerial = kpClientRepository.findHighestSerialNumber();
+        // Get both current and deleted serial numbers
+        Optional<Long> maxCurrentSerial = kpClientRepository.findHighestSerialNumber();
+        Optional<Long> maxDeletedSerial = Optional.ofNullable(
+                deletedSerialRepository.findAllDeletedSerials()
+                        .stream()
+                        .max(Long::compareTo)
+                        .orElse(null)
+        );
 
-        // If no serial numbers exist, start from STARTING_SERIAL
-        long nextSerial = maxSerial.map(serial -> serial + 1)
-                .orElse(STARTING_SERIAL);
+        // Find the highest between current and deleted
+        long highestSerial = Stream.of(maxCurrentSerial, maxDeletedSerial)
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .max(Long::compareTo)
+                .orElse(STARTING_SERIAL - 1);
 
-        // If we've reached the maximum, look for gaps
+        long nextSerial = highestSerial + 1;
+
         if (nextSerial > MAX_SERIAL) {
-            Optional<Long> gap = findFirstAvailableGap();
-            if (gap.isPresent()) {
-                nextSerial = gap.get();
-            } else {
-                throw new IllegalStateException("No available serial numbers in the valid range");
-            }
-        }
-
-        // Double-check the number isn't in use
-        if (kpClientRepository.existsBySerialNumber(nextSerial)) {
-            // If it exists, recursively try to get the next available number
-            return generateSerialNumber();
+            throw new IllegalStateException("No available serial numbers in the valid range");
         }
 
         return nextSerial;
-    }
-
-    private Optional<Long> findFirstAvailableGap() {
-        var usedSerials = kpClientRepository.findAllSerialNumbersOrdered();
-
-        long expectedSerial = STARTING_SERIAL;
-        for (Long usedSerial : usedSerials) {
-            if (expectedSerial < usedSerial) {
-                return Optional.of(expectedSerial);
-            }
-            expectedSerial = usedSerial + 1;
-        }
-
-        return Optional.empty();
     }
 }

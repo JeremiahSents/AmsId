@@ -1,0 +1,4 @@
+package dev.sentomero.backend_ams.repository;
+
+public interface DeletedSerialNumberRepository {
+}

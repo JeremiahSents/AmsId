@@ -34,7 +34,7 @@ public class JwtTokenService {
     public void init() {
         byte[] decodedKey = Base64.getDecoder().decode(secret);
         this.key = Keys.hmacShaKeyFor(decodedKey);
-        System.out.println("jwtExpiration value from properties: " + jwtExpiration);
+//        System.out.println("jwtExpiration value from properties: " + jwtExpiration);
     }
 
     // Generate Access Token

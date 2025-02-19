@@ -1,6 +1,8 @@
 import axios from "axios";
 
-export const API_URL = import.meta.env.VITE_API_URL || "http://18.191.168.91:8080";
+// export const API_URL = import.meta.env.VITE_API_URL || "http://18.191.168.91:8080";
+
+export const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080";
 
 const api = axios.create({
     baseURL: API_URL,
@@ -138,13 +140,13 @@ export const login = async (credentials) => {
     }
 };
 
-// Generate Serial Number
-export const generateSerialNumber = async () => {
+//generate serial number for form
+export const generateSerialNumberForForm = async () => {
     try {
-        const response = await api.get("/serial/generate");
+        const response = await api.get("/clients/generate"); // **Modified endpoint URL - /clients/serial-for-form**
         return response.data;
     } catch (error) {
-        throw new Error(error.response?.data?.message || "Failed to generate serial number");
+        throw new Error(error.response?.data?.message || "Failed to generate serial number for form");
     }
 };
 

@@ -29,11 +29,6 @@ public class KpClientController {
 
         return ResponseEntity.status(HttpStatus.CREATED).body(kpClientService.saveClient(kpClientDto));
     }
-    @GetMapping("/generate") // New endpoint in KpClientController
-    public ResponseEntity<Long> getSerialNumberForForm() {
-        Long serialNumber = kpClientService.generateSerialNumberForForm();
-        return ResponseEntity.ok(serialNumber);
-    }
 
     @GetMapping("/all")
     public ResponseEntity<List<KpClientDto>> getAllClients() {

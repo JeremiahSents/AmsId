@@ -3,12 +3,6 @@ import {
   Box, 
   IconButton, 
   CircularProgress, 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableContainer, 
-  TableHead, 
-  TableRow, 
   Paper, 
   Typography,
   Dialog,
@@ -30,19 +24,17 @@ import {
   Collapse,
 } from "@mui/material";
 import { Edit as EditIcon, Delete as DeleteIcon, ExpandMore as ExpandMoreIcon ,ExpandLess as ExpandLessIcon} from "@mui/icons-material";
-
 import axios from "axios";
 import { getCategories } from '../services/api';
 import PropTypes from 'prop-types';
-
+import { AutoSizer, Column, Table as VirtualizedTable } from 'react-virtualized';
+import 'react-virtualized/styles.css'; // Import the styles
 
 const ClientTable = () => {
-
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const isSmall = useMediaQuery(theme.breakpoints.down('sm'));
 
-  // Define baseUrl here
   const baseUrl = import.meta.env.VITE_API_URL || 'http://18.191.168.91:8080';
 
   const [clients, setClients] = useState([]);
@@ -73,29 +65,25 @@ const ClientTable = () => {
             Authorization: `Bearer ${token}`,
           }
         }),
-        getCategories() // Assuming this returns an array like [{ id: 1, name: "General" }, ...]
+        getCategories()
       ]);
   
       const clientsData = Array.isArray(clientsResponse.data) ? clientsResponse.data : [];
   
-      // Merge category names into client objects based on categoryId
       const mergedClients = clientsData.map(client => {
-        // Find matching category by comparing client.categoryId with category.id
         const category = categoriesResponse.find(cat => cat.id === client.categoryId);
         return {
           ...client,
-          // Add a new property for the category name
           categoryName: category ? category.name : "Unknown"
         };
       });
   
-      // Optionally filter out clients with missing fields if needed:
       const validClients = mergedClients.filter(client =>
         client && client.kpClientId != null && client.kpClientSerialNumber != null
       );
   
       setClients(validClients);
-      setCategories(categoriesResponse); // For filtering dropdown, etc.
+      setCategories(categoriesResponse);
       setError(null);
     } catch (error) {
       console.error("Error fetching data:", error);
@@ -105,8 +93,6 @@ const ClientTable = () => {
       setLoading(false);
     }
   };
-  
-
 
   useEffect(() => {
     let mounted = true;
@@ -173,7 +159,7 @@ const ClientTable = () => {
         );
 
         setEditDialog(false);
-        await fetchData(); // Refresh the table
+        await fetchData();
         setUpdateMessage({ type: 'success', message: 'Client updated successfully' });
     } catch (error) {
         console.error('Update error:', error);
@@ -184,9 +170,9 @@ const ClientTable = () => {
     } finally {
         setUpdating(false);
     }
-};
+  };
 
-const handleDeleteSubmit = async () => {
+  const handleDeleteSubmit = async () => {
     if (!selectedClient?.kpClientId) {
         setUpdateMessage({ type: 'error', message: 'Invalid client ID' });
         return;
@@ -210,7 +196,7 @@ const handleDeleteSubmit = async () => {
         );
 
         setDeleteDialog(false);
-        await fetchData(); // Refresh the table
+        await fetchData();
         setUpdateMessage({ type: 'success', message: 'Client deleted successfully' });
     } catch (error) {
         console.error('Delete error:', error);
@@ -221,32 +207,17 @@ const handleDeleteSubmit = async () => {
     } finally {
         setDeleting(false);
     }
-};
+  };
 
-const handleDeleteConfirm = (client) => {
+  const handleDeleteConfirm = (client) => {
     setSelectedClient(client);
     setDeleteDialog(true);
-};
+  };
 
   const handleCategoryChange = (event) => {
     setSelectedCategory(event.target.value);
   };
 
-  if (loading) {
-    return <CircularProgress size={40} />;
-  }
-
-  if (error) {
-    return (
-      <Box sx={{ p: 5 }}>
-        <Typography color="error">Error: {error}</Typography>
-        <Typography sx={{ mt: 2 }}>Please check:</Typography>
-        <Typography>1. Backend server is running</Typography>
-        <Typography>2. VITE_API_URL is correct in .env file</Typography>
-        <Typography>3. API endpoint path is correct</Typography>
-      </Box>
-    );
-  }
   const MobileClientCard = ({ client, index }) => {
     const isExpanded = expandedCard === index;
     
@@ -298,7 +269,6 @@ const handleDeleteConfirm = (client) => {
     );
   };
 
-  // Add prop types validation
   MobileClientCard.propTypes = {
     client: PropTypes.shape({
       kpClientFName: PropTypes.string.isRequired,
@@ -368,7 +338,6 @@ const handleDeleteConfirm = (client) => {
       </Box>
 
       {isMobile ? (
-        // Mobile view using cards
         <Stack spacing={2}>
           {filteredClients.map((client, index) => (
             <MobileClientCard 
@@ -379,54 +348,93 @@ const handleDeleteConfirm = (client) => {
           ))}
         </Stack>
       ) : (
-        // Desktop view using table
-        <TableContainer component={Paper}>
-          <Table size={isSmall ? "small" : "medium"}>
-            <TableHead>
-              <TableRow>
-                <TableCell>ID</TableCell>
-                <TableCell>First Name</TableCell>
-                <TableCell>Last Name</TableCell>
-                <TableCell>Serial Number</TableCell>
-                <TableCell>Time Assigned</TableCell>
-                <TableCell>Registered By</TableCell>
-                <TableCell>Category</TableCell>
-                <TableCell>Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {filteredClients.map((client, index) => (
-                <TableRow key={client.kpClientId || `client-${index}`}>
-                  <TableCell>{client.kpClientId}</TableCell>
-                  <TableCell>{client.kpClientFName}</TableCell>
-                  <TableCell>{client.kpClientLName}</TableCell>
-                  <TableCell>{client.kpClientSerialNumber || 'N/A'}</TableCell>
-                  <TableCell>
-                    {client.kpClientTimeAssigned ? 
-                      new Date(client.kpClientTimeAssigned).toLocaleString() : 
-                      'N/A'}
-                  </TableCell>
-                  <TableCell>{client.registeredByUsername || client.registeredBy || 'N/A'}</TableCell>
-                  <TableCell>{client.categoryName || 'N/A'}</TableCell>
-                  <TableCell>
-                    <IconButton 
-                      onClick={() => handleUpdate(client)}
-                      sx={{ mr: 1 }}
-                    >
-                      <EditIcon />
-                    </IconButton>
-                    <IconButton 
-                      color="error"
-                      onClick={() => handleDeleteConfirm(client)}
-                    >
-                      <DeleteIcon />
-                    </IconButton>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
+        <Paper style={{ height: 600, width: '100%' }}>
+          <AutoSizer>
+            {({ height, width }) => (
+              <VirtualizedTable
+                width={width}
+                height={height}
+                headerHeight={48}
+                rowHeight={48}
+                rowCount={filteredClients.length}
+                rowGetter={({ index }) => filteredClients[index]}
+                rowStyle={{ display: 'flex', alignItems: 'center' }}
+              >
+                {/* <Column
+                  label="ID"
+                  dataKey="kpClientId"
+                  width={100}
+                  flexGrow={1}
+                /> */}
+                <Column
+                  label="First Name"
+                  dataKey="kpClientFName"
+                  width={150}
+                  flexGrow={1}
+                />
+                <Column
+                  label="Last Name"
+                  dataKey="kpClientLName"
+                  width={150}
+                  flexGrow={1}
+                />
+                <Column
+                  label="Serial Number"
+                  dataKey="kpClientSerialNumber"
+                  width={150}
+                  flexGrow={1}
+                />
+                {/* <Column
+                  label="Time Assigned"
+                  dataKey="kpClientTimeAssigned"
+                  width={200}
+                  flexGrow={1}
+                  cellRenderer={({ cellData }) => (
+                    cellData ? new Date(cellData).toLocaleString() : 'N/A'
+                  )}
+                /> */}
+                <Column
+                  label="Registered By"
+                  dataKey="registeredByUsername"
+                  width={150}
+                  flexGrow={1}
+                  cellRenderer={({ cellData, rowData }) => (
+                    cellData || rowData.registeredBy || 'N/A'
+                  )}
+                />
+                <Column
+                  label="Category"
+                  dataKey="categoryName"
+                  width={250}
+                  flexGrow={1}
+                />
+                <Column
+                  label="Actions"
+                  dataKey="actions"
+                  width={120}
+                  flexGrow={1}
+                  cellRenderer={({ rowData }) => (
+                    <Box sx={{ display: 'flex', gap: 1 }}>
+                      <IconButton 
+                        onClick={() => handleUpdate(rowData)}
+                        size="small"
+                      >
+                        <EditIcon />
+                      </IconButton>
+                      <IconButton 
+                        color="error"
+                        onClick={() => handleDeleteConfirm(rowData)}
+                        size="small"
+                      >
+                        <DeleteIcon />
+                      </IconButton>
+                    </Box>
+                  )}
+                />
+              </VirtualizedTable>
+            )}
+          </AutoSizer>
+        </Paper>
       )}
 
       {/* Edit Dialog */}

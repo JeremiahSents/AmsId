@@ -33,7 +33,7 @@ import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import api from "../services/api";
-import { generateSerialNumber, getCategories } from "../services/api";
+import {getCategories, generateSerialNumberForForm } from "../services/api";
 
 
 const baseUrl = import.meta.env.VITE_API_URL || 'http://18.191.168.91:8080';
@@ -61,7 +61,6 @@ export function Home() {
   const [successMessage, setSuccessMessage] = useState("");
 
   useEffect(() => {
-    // Check authentication first
     const token = localStorage.getItem("accessToken");
     if (!token || !user) {
       console.log("No token found or user not authenticated");
@@ -72,7 +71,7 @@ export function Home() {
     const fetchData = async () => {
       try {
         const categoriesList = await getCategories();
-        console.log("Raw categories data:", categoriesList);
+        // console.log("Raw categories data:", categoriesList);
 
         if (!Array.isArray(categoriesList)) {
           throw new Error("Categories data is not in the expected format");
@@ -92,33 +91,52 @@ export function Home() {
     fetchData();
   }, [navigate, user]);
 
+  // useEffect(() => {
+  //   const fetchSerialNumber = async () => {
+  //     const existingSerialNumber = localStorage.getItem("serialNumber");
+  //     if (existingSerialNumber) {
+  //       setFormData((prev) => ({
+  //         ...prev,
+  //         serialNumber: existingSerialNumber,
+  //       }));
+  //     } else {
+  //       try {
+  //         const serialNumber = await generateSerialNumber();
+  //         console.log("Fetched serial number:", serialNumber);
+  //         const serialNumberString = serialNumber.toString();
+  //         localStorage.setItem("serialNumber", serialNumberString);
+  //         setFormData((prev) => ({
+  //           ...prev,
+  //           serialNumber: serialNumberString,
+  //         }));
+  //       } catch (error) {
+  //         console.error("Error fetching serial number:", error);
+  //         setError("Failed to fetch serial number. Please try again later.");
+  //       }
+  //     }
+  //   };
+
+  //   fetchSerialNumber();
+  // }, []);
+
   useEffect(() => {
-    const fetchSerialNumber = async () => {
-      const existingSerialNumber = localStorage.getItem("serialNumber");
-      if (existingSerialNumber) {
-        setFormData((prev) => ({
-          ...prev,
-          serialNumber: existingSerialNumber,
-        }));
-      } else {
+    const fetchSerialNumberForForm = async () => {
         try {
-          const serialNumber = await generateSerialNumber();
-          console.log("Fetched serial number:", serialNumber);
-          const serialNumberString = serialNumber.toString();
-          localStorage.setItem("serialNumber", serialNumberString);
-          setFormData((prev) => ({
-            ...prev,
-            serialNumber: serialNumberString,
-          }));
+            const serialNumber = await generateSerialNumberForForm();
+            console.log("Fetched serial number for form:", serialNumber);
+            const serialNumberString = serialNumber.toString();
+            setFormData((prev) => ({
+                ...prev,
+                serialNumber: serialNumberString,
+            }));
         } catch (error) {
-          console.error("Error fetching serial number:", error);
-          setError("Failed to fetch serial number. Please try again later.");
+            console.error("Error fetching serial number for form:", error);
+            setError("Failed to fetch serial number. Please try again later.");
         }
-      }
     };
 
-    fetchSerialNumber();
-  }, []);
+    fetchSerialNumberForForm();
+}, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -171,25 +189,25 @@ export function Home() {
                     ? formData.newCategoryName.trim()
                     : null,
             registeredBy: user.username,
-            kpClientSerialNumber: formData.serialNumber,
+            // kpClientSerialNumber: formData.serialNumber,
         };
 
-        console.log("Submitting client data:", clientData);
-        console.log("Registration Request URL:", `${baseUrl}/clients/register`); // Log URL
-        console.log("Registration Request Headers (before api.post):", api.defaults.headers.common); // Log headers
+        // console.log("Submitting client data:", clientData);
+        // console.log("Registration Request URL:", `${baseUrl}/clients/register`); // Log URL
+        // console.log("Registration Request Headers (before api.post):", api.defaults.headers.common); // Log headers
 
 
         const response = await api.post(`${baseUrl}/clients/register`, clientData); // **CORRECTED LINE - URL and data are separate arguments**
 
 
         if (response.status === 201) {
-            localStorage.removeItem("serialNumber");
-            const newSerialNumber = await generateSerialNumber();
-            const newSerialNumberString = newSerialNumber.toString();
-            localStorage.setItem("serialNumber", newSerialNumberString);
+            // localStorage.removeItem("serialNumber");
+            // const newSerialNumber = await generateSerialNumber();
+            // const newSerialNumberString = newSerialNumber.toString();
+            // localStorage.setItem("serialNumber", newSerialNumberString);
 
             setFormData({
-                serialNumber: newSerialNumberString,
+                serialNumber: "",
                 firstName: "",
                 lastName: "",
                 categoryId: "",

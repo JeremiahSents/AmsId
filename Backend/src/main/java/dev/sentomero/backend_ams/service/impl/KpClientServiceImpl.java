@@ -3,33 +3,48 @@ package dev.sentomero.backend_ams.service.impl;
 import dev.sentomero.backend_ams.dto.KpClientDto;
 import dev.sentomero.backend_ams.models.AmsUser;
 import dev.sentomero.backend_ams.models.Category;
+import dev.sentomero.backend_ams.models.DeletedSerialNumber;
 import dev.sentomero.backend_ams.models.KpClient;
 import dev.sentomero.backend_ams.repository.AmsUserRepository;
 import dev.sentomero.backend_ams.repository.CategoryRepository;
+import dev.sentomero.backend_ams.repository.DeletedSerialNumberRepository;
 import dev.sentomero.backend_ams.repository.KpClientRepository;
 import dev.sentomero.backend_ams.service.KpClientService;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
 public class KpClientServiceImpl implements KpClientService {
 
+    private static final long STARTING_SERIAL = 5000L;
+    private static final long MAX_SERIAL = 99999L;
     private final KpClientRepository kpClientRepository;
     private final AmsUserRepository amsUserRepository;
     private final CategoryRepository categoryRepository;
+    private final DeletedSerialNumberRepository deletedSerialNumberRepository;
+    private final EntityManager entityManager;
 
     @Autowired
     public KpClientServiceImpl(KpClientRepository kpClientRepository,
                                AmsUserRepository amsUserRepository,
-                               CategoryRepository categoryRepository) {
+                               CategoryRepository categoryRepository,
+                               DeletedSerialNumberRepository deletedSerialNumberRepository,
+                               EntityManager entityManager) {
         this.kpClientRepository = kpClientRepository;
         this.amsUserRepository = amsUserRepository;
         this.categoryRepository = categoryRepository;
+        this.deletedSerialNumberRepository = deletedSerialNumberRepository;
+        this.entityManager = entityManager;
     }
 
     private KpClientDto convertToDto(KpClient client) {
@@ -54,50 +69,44 @@ public class KpClientServiceImpl implements KpClientService {
     }
 
     @Override
-    @Transactional
+    @Transactional(isolation = Isolation.SERIALIZABLE)
     public KpClientDto saveClient(KpClientDto clientDto) {
-        KpClient client = new KpClient();
-        client.setFirstName(clientDto.getKpClientFName());
-        client.setLastName(clientDto.getKpClientLName());
-        client.setSerialNumber(clientDto.getKpClientSerialNumber());
-        
-        // Find user by username
-        AmsUser registeredBy = amsUserRepository.findByAmsUsername(clientDto.getRegisteredBy())
-            .orElseThrow(() -> new RuntimeException("User not found with username: " + clientDto.getRegisteredBy()));
-        client.setRegisteredBy(registeredBy);
-        
-        // Set category if provided
-        // Handle Category Logic
-        if (clientDto.getCategoryId() != null) {
-            // Existing category selected (not 'Other')
-            Category category = categoryRepository.findById(clientDto.getCategoryId())
-                    .orElseThrow(() -> new RuntimeException("Category not found with ID: " + clientDto.getCategoryId()));
-            client.setCategory(category);
-        } else if (clientDto.getNewCategoryName() != null && !clientDto.getNewCategoryName().trim().isEmpty()) {
-            // 'Other' category selected, and new category name provided
-            String newCategoryName = clientDto.getNewCategoryName().trim();
-            Category existingCategory = categoryRepository.findByName(newCategoryName).orElse(null); // Check if category exists
+        // Acquire pessimistic lock at the beginning of the transaction
+     entityManager.createNativeQuery("SELECT pg_advisory_xact_lock(123456)").getSingleResult();
 
-            Category categoryToSet;
-            if (existingCategory != null) {
-                categoryToSet = existingCategory; // Use existing category
-                System.out.println("Using existing category: " + newCategoryName);
-            } else {
-                // Create new category
-                Category newCategory = new Category();
-                newCategory.setName(newCategoryName);
-                categoryToSet = categoryRepository.save(newCategory); // Save the new category
-                System.out.println("Created new category: " + newCategoryName);
-            }
-            client.setCategory(categoryToSet);
-        } else {
-            // No category selected and no new category name provided when 'Other' is intended
-            // This case should ideally be prevented by frontend validation, but handle it defensively:
-            throw new RuntimeException("Category is required.");
+        // Generate Serial Number - Logic moved from SerialNumberServiceImpl
+
+        Optional<Long> maxCurrentSerial = kpClientRepository.findHighestSerialNumber();
+        Optional<Long> maxDeletedSerial = Optional.ofNullable(
+                deletedSerialNumberRepository.findAllDeletedSerials()
+                        .stream()
+                        .max(Long::compareTo)
+                        .orElse(null)
+        );
+
+        long highestSerial = Stream.of(maxCurrentSerial, maxDeletedSerial)
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .max(Long::compareTo)
+                .orElse(STARTING_SERIAL - 1);
+
+        long nextSerial = highestSerial + 1;
+
+        if (nextSerial > MAX_SERIAL) {
+            throw new IllegalStateException("No available serial numbers in the valid range");
         }
-        client.setTimeAssigned(LocalDateTime.now());
-        
-        KpClient savedClient = kpClientRepository.save(client);
+
+        KpClient kpClient = new KpClient();
+        kpClient.setFirstName(clientDto.getKpClientFName());
+        kpClient.setLastName(clientDto.getKpClientLName());
+        kpClient.setSerialNumber(nextSerial);
+        kpClient.setTimeAssigned(LocalDateTime.now());
+        kpClient.setRegisteredBy(amsUserRepository.findByAmsUsername(clientDto.getRegisteredBy())
+                .orElseThrow(() -> new RuntimeException("User not found: " + clientDto.getRegisteredBy())));
+        kpClient.setCategory(categoryRepository.findById(clientDto.getCategoryId())
+                .orElseThrow(() -> new RuntimeException("Category not found: " + clientDto.getCategoryId())));
+
+        KpClient savedClient = kpClientRepository.save(kpClient);
         return convertToDto(savedClient);
     }
 
@@ -140,10 +149,50 @@ public class KpClientServiceImpl implements KpClientService {
         return convertToDto(kpClientRepository.save(existingClient));
     }
 
+    @Transactional
     @Override
     public void deleteKpClient(int id) {
-        KpClient existingClient = kpClientRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Client not found with ID: " + id));
-        kpClientRepository.delete(existingClient);
+        KpClient client = kpClientRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Client not found"));
+
+        // Save the serial number to deleted table before deleting the client
+        DeletedSerialNumber deletedSerial = new DeletedSerialNumber();
+        deletedSerial.setSerialNumber(client.getSerialNumber());
+        deletedSerial.setDeletedAt(LocalDateTime.now());
+        deletedSerial.setOriginalClientId((long) client.getId()); // Add this line to set originalClientId
+        deletedSerialNumberRepository.save(deletedSerial);
+
+        // Now delete the client
+        kpClientRepository.delete(client);
     }
-}
+
+    @Override
+    @Transactional(isolation = Isolation.SERIALIZABLE, readOnly = true) // Read-only transaction for form fetch
+    public Long generateSerialNumberForForm() {
+        // Create a pessimistic lock (shared lock)
+        entityManager.createNativeQuery("SELECT pg_advisory_xact_lock_shared(123456)").getSingleResult();
+
+        // Get both current and deleted serial numbers (same logic)
+        Optional<Long> maxCurrentSerial = kpClientRepository.findHighestSerialNumber();
+        Optional<Long> maxDeletedSerial = Optional.ofNullable(
+                deletedSerialNumberRepository.findAllDeletedSerials()
+                        .stream()
+                        .max(Long::compareTo)
+                        .orElse(null)
+        );
+
+        long highestSerial = Stream.of(maxCurrentSerial, maxDeletedSerial)
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .max(Long::compareTo)
+                .orElse(STARTING_SERIAL - 1);
+
+        long nextSerial = highestSerial + 1;
+
+        if (nextSerial > MAX_SERIAL) {
+            throw new IllegalStateException("No available serial numbers in the valid range");
+        }
+
+        return nextSerial;
+    }
+    }

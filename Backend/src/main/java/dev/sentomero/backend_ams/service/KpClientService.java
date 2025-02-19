@@ -17,4 +17,6 @@ public interface KpClientService {
 
     void deleteKpClient(int id);
 
+    Long generateSerialNumberForForm();
 }
+
