@@ -1,7 +1,7 @@
 package dev.sentomero.backend_ams.controller;
 
-
 import dev.sentomero.backend_ams.dto.KpClientDto;
+import dev.sentomero.backend_ams.dto.SerialNumberResponse;
 import dev.sentomero.backend_ams.service.KpClientService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -24,22 +24,19 @@ public class KpClientController {
 
     @PostMapping("/register")
     public ResponseEntity<KpClientDto> createKpClient(@RequestBody KpClientDto kpClientDto) {
-//        System.out.println("--- KpClientController - createKpClient method called ---"); // Added log
-//        System.out.println("KpClientDto received in controller: categoryId = " + kpClientDto.getCategoryId() + ", newCategoryName = " + kpClientDto.getNewCategoryName() + ", firstName = " + kpClientDto.getKpClientFName() + ", lastName = " + kpClientDto.getKpClientLName()); // Added log
-
         return ResponseEntity.status(HttpStatus.CREATED).body(kpClientService.saveClient(kpClientDto));
     }
-    @GetMapping("/generate") // New endpoint in KpClientController
-    public ResponseEntity<Long> getSerialNumberForForm() {
+
+    @GetMapping("/generate")
+    public ResponseEntity<SerialNumberResponse> getSerialNumberForForm() {
         Long serialNumber = kpClientService.generateSerialNumberForForm();
-        return ResponseEntity.ok(serialNumber);
+        return ResponseEntity.ok(new SerialNumberResponse(serialNumber));
     }
 
     @GetMapping("/all")
     public ResponseEntity<List<KpClientDto>> getAllClients() {
         return ResponseEntity.ok(kpClientService.getAllClients());
     }
-
 
     @GetMapping("/{id}")
     public ResponseEntity<KpClientDto> getKpClientById(@PathVariable int id) {
@@ -76,5 +73,3 @@ public class KpClientController {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
     }
 }
-
-

@@ -1,24 +1,6 @@
-import {
-  Box,
-  Stack,
-  Typography,
-  Button,
-  TextField,
-  Paper,
-  CircularProgress,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  Alert,
-  AlertTitle,
-  Drawer,
-  IconButton,
-  AppBar,
-  Toolbar,
-  Container,
-  useTheme,
-  useMediaQuery,
+import {Box,Stack,Typography,Button,TextField,Paper,CircularProgress,
+  Select,MenuItem,FormControl,InputLabel,Alert,AlertTitle,Drawer,
+  IconButton,AppBar,Toolbar,Container,useTheme,useMediaQuery,
 } from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
 import {
@@ -33,10 +15,9 @@ import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import api from "../services/api";
-import {getCategories, generateSerialNumberForForm } from "../services/api";
+import { getCategories, generateSerialNumberForForm } from "../services/api";
 
-
-const baseUrl = import.meta.env.VITE_API_URL || 'http://18.191.168.91:8080';
+const baseUrl = import.meta.env.VITE_API_URL || "http://18.191.168.91:8080";
 export function Home() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
@@ -44,7 +25,6 @@ export function Home() {
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const bgColor = "grey.100";
   const OTHER_CATEGORY_VALUE = "Other";
-
 
   const [isDrawerOpen, setIsDrawerOpen] = useState(false); // For mobile menu
 
@@ -63,7 +43,7 @@ export function Home() {
   useEffect(() => {
     const token = localStorage.getItem("accessToken");
     if (!token || !user) {
-      console.log("No token found or user not authenticated");
+      // console.log("No token found or user not authenticated");
       navigate("/login");
       return;
     }
@@ -79,7 +59,7 @@ export function Home() {
 
         setCategories(categoriesList);
       } catch (err) {
-        console.error("Error fetching data:", err);
+        // console.error("Error fetching data:", err);
         if (err.message === "No authentication token found") {
           navigate("/login");
         } else {
@@ -91,52 +71,24 @@ export function Home() {
     fetchData();
   }, [navigate, user]);
 
-  // useEffect(() => {
-  //   const fetchSerialNumber = async () => {
-  //     const existingSerialNumber = localStorage.getItem("serialNumber");
-  //     if (existingSerialNumber) {
-  //       setFormData((prev) => ({
-  //         ...prev,
-  //         serialNumber: existingSerialNumber,
-  //       }));
-  //     } else {
-  //       try {
-  //         const serialNumber = await generateSerialNumber();
-  //         console.log("Fetched serial number:", serialNumber);
-  //         const serialNumberString = serialNumber.toString();
-  //         localStorage.setItem("serialNumber", serialNumberString);
-  //         setFormData((prev) => ({
-  //           ...prev,
-  //           serialNumber: serialNumberString,
-  //         }));
-  //       } catch (error) {
-  //         console.error("Error fetching serial number:", error);
-  //         setError("Failed to fetch serial number. Please try again later.");
-  //       }
-  //     }
-  //   };
-
-  //   fetchSerialNumber();
-  // }, []);
-
   useEffect(() => {
     const fetchSerialNumberForForm = async () => {
-        try {
-            const serialNumber = await generateSerialNumberForForm();
-            console.log("Fetched serial number for form:", serialNumber);
-            const serialNumberString = serialNumber.toString();
-            setFormData((prev) => ({
-                ...prev,
-                serialNumber: serialNumberString,
-            }));
-        } catch (error) {
-            console.error("Error fetching serial number for form:", error);
-            setError("Failed to fetch serial number. Please try again later.");
-        }
+      try {
+        const serialNumber = await generateSerialNumberForForm();
+        console.log("Fetched serial number for form:", serialNumber);
+        const serialNumberString = serialNumber.toString();
+        setFormData((prev) => ({
+          ...prev,
+          serialNumber: serialNumberString,
+        }));
+      } catch (error) {
+        console.error("Error fetching serial number for form:", error);
+        setError("Failed to fetch serial number. Please try again later.");
+      }
     };
 
     fetchSerialNumberForForm();
-}, []);
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -169,76 +121,76 @@ export function Home() {
   const handleSubmit = async () => {
     const errors = validateForm();
     if (errors.length > 0) {
-        setError(errors.join(", "));
-        return;
+      setError(errors.join(", "));
+      return;
     }
 
     setLoading(true);
     setError(""); // Clear previous errors
     setSuccessMessage(""); // Clear previous success message
     try {
-        const clientData = {
-            kpClientFName: formData.firstName.trim(),
-            kpClientLName: formData.lastName.trim(),
-            categoryId:
-                formData.categoryId === OTHER_CATEGORY_VALUE
-                    ? null
-                    : parseInt(formData.categoryId, 10),
-            newCategoryName:
-                formData.categoryId === OTHER_CATEGORY_VALUE
-                    ? formData.newCategoryName.trim()
-                    : null,
-            registeredBy: user.username,
-            // kpClientSerialNumber: formData.serialNumber,
-        };
+      const clientData = {
+        kpClientFName: formData.firstName.trim(),
+        kpClientLName: formData.lastName.trim(),
+        categoryId:
+          formData.categoryId === OTHER_CATEGORY_VALUE
+            ? null
+            : parseInt(formData.categoryId, 10),
+        newCategoryName:
+          formData.categoryId === OTHER_CATEGORY_VALUE
+            ? formData.newCategoryName.trim()
+            : null,
+        registeredBy: user.username,
+        // kpClientSerialNumber: formData.serialNumber,
+      };
 
-        // console.log("Submitting client data:", clientData);
-        // console.log("Registration Request URL:", `${baseUrl}/clients/register`); // Log URL
-        // console.log("Registration Request Headers (before api.post):", api.defaults.headers.common); // Log headers
+      // console.log("Submitting client data:", clientData);
+      // console.log("Registration Request URL:", `${baseUrl}/clients/register`); // Log URL
+      // console.log("Registration Request Headers (before api.post):", api.defaults.headers.common); // Log headers
 
+      const response = await api.post(
+        `${baseUrl}/clients/register`,
+        clientData
+      ); // **CORRECTED LINE - URL and data are separate arguments**
 
-        const response = await api.post(`${baseUrl}/clients/register`, clientData); // **CORRECTED LINE - URL and data are separate arguments**
+      if (response.status === 201) {
+        // localStorage.removeItem("serialNumber");
+        // const newSerialNumber = await generateSerialNumber();
+        // const newSerialNumberString = newSerialNumber.toString();
+        // localStorage.setItem("serialNumber", newSerialNumberString);
 
+        setFormData({
+          serialNumber: "",
+          firstName: "",
+          lastName: "",
+          categoryId: "",
+          newCategoryName: "",
+        });
 
-        if (response.status === 201) {
-            // localStorage.removeItem("serialNumber");
-            // const newSerialNumber = await generateSerialNumber();
-            // const newSerialNumberString = newSerialNumber.toString();
-            // localStorage.setItem("serialNumber", newSerialNumberString);
+        setError("");
+        setSuccessMessage("Client registered successfully!");
 
-            setFormData({
-                serialNumber: "",
-                firstName: "",
-                lastName: "",
-                categoryId: "",
-                newCategoryName: "",
-            });
-
-            setError("");
-            setSuccessMessage("Client registered successfully!");
-
-            setTimeout(() => {
-                setSuccessMessage("");
-            }, 3000);
-        }
+        setTimeout(() => {
+          setSuccessMessage("");
+        }, 3000);
+      }
     } catch (error) {
-        console.error("Registration error:", error);
-        const errorMessage =
-            error.response?.data?.message ||
-            error.response?.data ||
-            error.message ||
-            "Failed to register client";
-        setError(errorMessage);
+      console.error("Registration error:", error);
+      const errorMessage =
+        error.response?.data?.message ||
+        error.response?.data ||
+        error.message ||
+        "Failed to register client";
+      setError(errorMessage);
     } finally {
-        setLoading(false);
+      setLoading(false);
     }
-};
+  };
 
   const handleLogout = () => {
     logout();
     navigate("/login");
   };
-
 
   const SidebarContent = () => (
     <Stack spacing={3} sx={{ p: 3, color: "white", height: "100%" }}>
@@ -306,11 +258,11 @@ export function Home() {
   return (
     <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: bgColor }}>
       {/* Mobile App Bar */}
-      <AppBar 
-        position="fixed" 
-        sx={{ 
+      <AppBar
+        position="fixed"
+        sx={{
           display: { xs: "block", md: "none" },
-          zIndex: (theme) => theme.zIndex.drawer + 1
+          zIndex: (theme) => theme.zIndex.drawer + 1,
         }}
       >
         <Toolbar>
@@ -468,7 +420,7 @@ export function Home() {
                     required
                   />
                 )}
-                
+
                 <Button
                   variant="contained"
                   color="primary"

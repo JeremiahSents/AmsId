@@ -24,6 +24,7 @@ public interface KpClientRepository extends JpaRepository<KpClient, Integer> {
         SELECT CASE 
             WHEN EXISTS (SELECT 1 FROM KpClient k WHERE k.serialNumber = :serialNumber)
             OR EXISTS (SELECT 1 FROM DeletedSerialNumber d WHERE d.serialNumber = :serialNumber)
+            OR EXISTS (SELECT 1 FROM ReservedSerialNumber r WHERE r.serialNumber = :serialNumber)
             THEN true 
             ELSE false 
         END
@@ -71,6 +72,27 @@ public interface KpClientRepository extends JpaRepository<KpClient, Integer> {
             SELECT 1 FROM DeletedSerialNumber d 
             WHERE d.serialNumber = k2.serialNumber
         )
+        AND NOT EXISTS (
+            SELECT 1 FROM ReservedSerialNumber r 
+            WHERE r.serialNumber = k2.serialNumber
+        )
     """)
     Optional<Long> findNextAvailableSerialNumber(@Param("currentSerial") Long currentSerial);
+
+    @Query("""
+        SELECT MIN(nextSerial) FROM (
+            SELECT :startSerial + 1 as nextSerial
+            UNION
+            SELECT MIN(k.serialNumber + 1) 
+            FROM KpClient k 
+            WHERE k.serialNumber >= :startSerial AND k.serialNumber + 1 NOT IN (
+                SELECT k2.serialNumber FROM KpClient k2
+            ) AND k.serialNumber + 1 NOT IN (
+                SELECT d.serialNumber FROM DeletedSerialNumber d
+            ) AND k.serialNumber + 1 NOT IN (
+                SELECT r.serialNumber FROM ReservedSerialNumber r
+            )
+        ) as available_serials
+    """)
+    Optional<Long> findFirstAvailableSerialNumberAfter(@Param("startSerial") Long startSerial);
 }
