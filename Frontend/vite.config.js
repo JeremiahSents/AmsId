@@ -23,7 +23,7 @@ export default defineConfig(({ mode }) => ({
         secure: false,
       }
     },
-    open: true // This will open the browser automatically
+    open: true 
   },
 
   build: {
