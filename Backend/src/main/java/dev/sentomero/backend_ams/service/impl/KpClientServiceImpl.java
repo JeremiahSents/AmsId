@@ -189,7 +189,7 @@ public class KpClientServiceImpl implements KpClientService {
         // Find an already reserved but unused serial number
         Optional<Long> alreadyReservedSerial = reservedSerialNumberRepository.findAllReservedSerials()
                 .stream()
-                .min(Long::compareTo); // Get the smallest available reserved serial
+                .min(Long::compareTo);
 
         if (alreadyReservedSerial.isPresent()) {
             System.out.println("Reusing reserved serial: " + alreadyReservedSerial.get());

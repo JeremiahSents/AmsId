@@ -1,6 +1,24 @@
-import {Box,Stack,Typography,Button,TextField,Paper,CircularProgress,
-  Select,MenuItem,FormControl,InputLabel,Alert,AlertTitle,Drawer,
-  IconButton,AppBar,Toolbar,Container,useTheme,useMediaQuery,
+import {
+  Box,
+  Stack,
+  Typography,
+  Button,
+  TextField,
+  Paper,
+  CircularProgress,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  Alert,
+  AlertTitle,
+  Drawer,
+  IconButton,
+  AppBar,
+  Toolbar,
+  Container,
+  useTheme,
+  useMediaQuery,
 } from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
 import {
@@ -75,11 +93,13 @@ export function Home() {
     const fetchSerialNumberForForm = async () => {
       try {
         const serialNumber = await generateSerialNumberForForm();
-        console.log("Fetched serial number for form:", serialNumber);
-        const serialNumberString = serialNumber.toString();
+        const serialValue =
+          typeof serialNumber === "object"
+            ? serialNumber.serialNumber
+            : serialNumber;
         setFormData((prev) => ({
           ...prev,
-          serialNumber: serialNumberString,
+          serialNumber: serialValue.toString(),
         }));
       } catch (error) {
         console.error("Error fetching serial number for form:", error);
@@ -127,7 +147,7 @@ export function Home() {
 
     setLoading(true);
     setError(""); // Clear previous errors
-    setSuccessMessage(""); // Clear previous success message
+    setSuccessMessage("");
     try {
       const clientData = {
         kpClientFName: formData.firstName.trim(),
