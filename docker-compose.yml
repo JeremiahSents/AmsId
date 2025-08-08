@@ -1,4 +1,3 @@
-# Use Docker Compose to run both backend and frontend at once
 version: "3.8"
 
 services:
